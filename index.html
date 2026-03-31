@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Caeden Pong: Pinch & Helicopter Edition</title>
+    <title>Caeden Pong: Ultimate Arcade Edition</title>
     <style>
         body {
             background-color: #0f0f0f; color: white; display: flex; flex-direction: column;
             align-items: center; justify-content: center; height: 100vh; margin: 0;
             font-family: 'Courier New', Courier, monospace; overflow: hidden;
         }
-        #ui-top { display: flex; width: 850px; justify-content: space-between; margin-bottom: 10px; font-size: 0.9rem; font-weight: bold; }
+        #ui-top { display: flex; width: 900px; justify-content: space-between; margin-bottom: 10px; font-size: 0.8rem; font-weight: bold; }
         #game-container { position: relative; border: 4px solid #333; border-radius: 8px; }
         canvas { background-color: black; display: block; }
         
@@ -22,30 +22,40 @@
             justify-content: center; align-items: center; z-index: 20;
         }
         .menu-card { background: #1a1a1a; padding: 30px; border-radius: 15px; border: 2px solid #4a90e2; text-align: center; }
-        h1 { font-size: 3rem; color: #4a90e2; margin: 0 0 20px 0; }
+        h1 { font-size: 3rem; color: #4a90e2; margin: 0 0 10px 0; }
+        
+        #leaderboard { background: #222; padding: 10px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #444; }
+        
         input { padding: 10px; margin: 5px; border-radius: 5px; background: #222; color: white; border: 1px solid #444; }
-        button { padding: 10px 25px; background: #4a90e2; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        button { padding: 10px 25px; background: #4a90e2; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; margin-top: 10px; }
         
         .toggle-box { display: flex; align-items: center; gap: 5px; background: #222; padding: 5px 8px; border-radius: 15px; border: 1px solid #444; }
         .switch { position: relative; display: inline-block; width: 30px; height: 16px; }
         .switch input { opacity: 0; width: 0; height: 0; }
         .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #555; transition: .4s; border-radius: 18px; }
         input:checked + .slider { background-color: #4a90e2; }
-        #heli-toggle:checked + .slider { background-color: #ffca28; }
+        #multi-toggle:checked + .slider { background-color: #f0f; }
         .slider:before { position: absolute; content: ""; height: 10px; width: 10px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
         input:checked + .slider:before { transform: translateX(14px); }
+        
+        /* Flash effect class */
+        .flash { animation: flash-anim 0.1s ease-out; }
+        @keyframes flash-anim { from { background-color: white; } to { background-color: black; } }
     </style>
 </head>
 <body>
 
-    <audio id="bgMusic" loop><source src="YOUR_SONG_LINK_HERE.mp3" type="audio/mpeg"></audio>
+    <audio id="bgMusic" loop>
+        <source src="YOUR_SONG_LINK_HERE.mp3" type="audio/mpeg">
+    </audio>
 
     <div id="ui-top">
         <div id="p1-label">Blue: 0</div>
-        <div style="display: flex; gap: 8px;">
+        <div style="display: flex; gap: 5px;">
             <div class="toggle-box">CHAOS <label class="switch"><input type="checkbox" id="chaos-toggle"><span class="slider"></span></label></div>
             <div class="toggle-box">CAEDEN <label class="switch"><input type="checkbox" id="caeden-toggle"><span class="slider"></span></label></div>
-            <div class="toggle-box" style="color: #ffca28;">HELICOPTER <label class="switch"><input type="checkbox" id="heli-toggle"><span class="slider"></span></label></div>
+            <div class="toggle-box">HELI <label class="switch"><input type="checkbox" id="heli-toggle"><span class="slider"></span></label></div>
+            <div class="toggle-box" style="color: #f0f;">MAYHEM <label class="switch"><input type="checkbox" id="multi-toggle"><span class="slider"></span></label></div>
         </div>
         <div id="p2-label">Red: 0</div>
     </div>
@@ -54,16 +64,16 @@
         <div id="start-screen">
             <div class="menu-card">
                 <h1 id="menu-title">CAEDEN PONG</h1>
+                <div id="leaderboard"><div id="winner-name">🏆 No champion yet</div></div>
                 <div id="inputs">
                     <input type="text" id="p1-input" placeholder="Player 1">
                     <input type="text" id="p2-input" placeholder="Player 2">
-                    <br><br><button onclick="initGame()">START MATCH</button>
+                    <br><button onclick="initGame()">START MATCH</button>
                 </div>
             </div>
         </div>
         <canvas id="pongCanvas" width="800" height="600"></canvas>
     </div>
-
     <div id="power-box"><div id="power-fill"></div></div>
 
     <script>
@@ -77,26 +87,36 @@
 
         let p1 = { x: 20, y: 250, h: 100, dy: 0, lastY: 250, angle: 0 };
         let p2 = { x: 765, y: 250, h: 100, dy: 0, lastY: 250, angle: 0 };
-        let ball = { x: 400, y: 300, r: 8, dx: 5, dy: 5, spin: 0, color: "white", isPower: false };
         
-        let trail = [], particles = [], notifications = [], powerups = [];
+        let balls = [];
+        let particles = [], notifications = [], powerups = [];
         const emojiMap = { 'speed': '⚡', 'size': '📏', 'ghost': '👻', 'gravity': '🌪️' };
         const keys = {};
 
         window.addEventListener("keydown", e => {
             keys[e.key] = true;
-            if (e.key === " " && gameActive) { paused = !paused; paused ? music.pause() : music.play(); }
+            if (e.key === " " && gameActive) {
+                paused = !paused;
+                paused ? music.pause() : music.play();
+            }
         });
         window.addEventListener("keyup", e => keys[e.key] = false);
 
+        function createBall(x = 400, y = 300, speedBoost = 1) {
+            return {
+                x: x, y: y, r: 8, 
+                dx: (Math.random() > 0.5 ? 5 : -5) * speedBoost, 
+                dy: (Math.random() - 0.5) * 8, 
+                spin: 0, color: "white", isPower: false, trail: [] 
+            };
+        }
+
         function initGame() {
-            score1 = 0; score2 = 0; hits = 0; ball.isPower = false; powerups = []; trail = [];
+            score1 = 0; score2 = 0; hits = 0; balls = [createBall()];
             p1Name = document.getElementById("p1-input").value || "Blue";
             p2Name = document.getElementById("p2-input").value || "Red";
             document.getElementById("start-screen").style.display = "none";
-            document.getElementById("inputs").style.display = "block";
-            document.getElementById("menu-title").textContent = "CAEDEN PONG";
-            music.volume = 0.3; music.play();
+            music.playbackRate = 1.0; music.play();
             countdown = 3; countdownActive = true;
             let timer = setInterval(() => {
                 countdown--;
@@ -104,25 +124,32 @@
             }, 1000);
         }
 
-        function chaosSpawner() {
-            if (!gameActive) return;
-            if (!paused && (document.getElementById("chaos-toggle").checked || document.getElementById("caeden-toggle").checked)) {
-                const types = Object.keys(emojiMap);
-                powerups.push({ x: 150 + Math.random() * 500, y: 100 + Math.random() * 400, type: types[Math.floor(Math.random() * types.length)], life: 400 });
-                if (document.getElementById("caeden-toggle").checked) spawnRate = Math.max(800, spawnRate - 200);
-            }
-            setTimeout(chaosSpawner, spawnRate);
+        function updateMusicSpeed() {
+            // Speed up music based on total score (max 1.5x speed)
+            let totalScore = score1 + score2;
+            music.playbackRate = 1.0 + (totalScore * 0.03); 
         }
 
-        function handleHit(paddle) {
+        function explode(x, y, color) {
+            for (let i = 0; i < 30; i++) {
+                particles.push({
+                    x: x, y: y, 
+                    dx: (Math.random() - 0.5) * 10, 
+                    dy: (Math.random() - 0.5) * 10, 
+                    life: 40, color: color
+                });
+            }
+        }
+
+        function handleHit(ball, paddle) {
             hits++;
             let impact = (ball.y - (paddle.y + paddle.h / 2)) / (paddle.h / 2);
             
-            // Check for PINCH (Hitting paddle while ball is against floor or ceiling)
-            if (ball.y <= ball.r + 5 || ball.y >= 600 - ball.r - 5) {
-                ball.dx *= 2.0; // 200% speed boost
-                shakeTime = 20;
-                notifications.push({text: "PINCH!", x: ball.x, y: ball.y, opacity: 1});
+            // Mega Pinch
+            if (ball.y < 45 || ball.y > 555) {
+                ball.dx *= 2.0; shakeTime = 25;
+                explode(ball.x, ball.y, "white");
+                notifications.push({text: "MEGA PINCH!", x: ball.x, y: ball.y, opacity: 1});
             }
 
             if (document.getElementById("heli-toggle").checked) {
@@ -133,119 +160,104 @@
                 ball.spin = paddle.dy * 0.3;
             }
 
-            if (hits >= 10) { 
-                ball.dx *= 2; ball.isPower = true; hits = 0; 
-                notifications.push({text: "FIRE BALL!", x: ball.x, y: ball.y, opacity: 1}); 
-            } else { 
-                ball.isPower = false; 
+            if (document.getElementById("multi-toggle").checked && hits % 5 === 0 && balls.length < 5) {
+                balls.push(createBall(ball.x, ball.y));
             }
-            document.getElementById("power-fill").style.width = (hits * 10) + "%";
-            ball.color = `hsl(${Math.random() * 360}, 100%, 50%)`;
-        }
 
-        function resetBall(scoredX) {
-            for(let i=0; i<20; i++) particles.push({x: scoredX, y: ball.y, dx: (Math.random()-0.5)*15, dy: (Math.random()-0.5)*15, life: 30, color: ball.color});
-            hits = 0; ball.isPower = false; ball.spin = 0; trail = []; spawnRate = 4000;
-            document.getElementById("power-fill").style.width = "0%";
-            ball.x = 400; ball.y = 300; ball.dx = (Math.random() > 0.5 ? 5 : -5); ball.dy = (Math.random()-0.5)*8;
-            ball.color = "white"; shakeTime = 15;
-            document.getElementById("p1-label").textContent = `${p1Name}: ${score1}`;
-            document.getElementById("p2-label").textContent = `${p2Name}: ${score2}`;
-            if (score1 >= 10 || score2 >= 10) {
-                gameActive = false;
-                document.getElementById("start-screen").style.display = "flex";
-                document.getElementById("menu-title").textContent = (score1 >= 10 ? p1Name : p2Name) + " WINS!";
-                document.getElementById("inputs").style.display = "none";
+            if (hits >= 10) { 
+                ball.dx *= 1.5; ball.isPower = true; shakeTime = 10;
+                explode(ball.x, ball.y, "orange");
+                notifications.push({text: "FIRE!", x: ball.x, y: ball.y, opacity: 1}); 
             }
+            document.getElementById("power-fill").style.width = ((hits % 10) * 10) + "%";
+            ball.color = `hsl(${Math.random() * 360}, 100%, 50%)`;
         }
 
         function move() {
             if (!gameActive || paused) return;
-            
             p1.dy = p1.y - p1.lastY; p1.lastY = p1.y;
             p2.dy = p2.y - p2.lastY; p2.lastY = p2.y;
 
-            if (document.getElementById("heli-toggle").checked) {
-                p1.angle += 0.2;
-                p2.angle += 0.2;
-            } else {
-                p1.angle += p1.dy * 0.05;
-                p2.angle += p2.dy * 0.05;
-                p1.angle *= 0.9; p2.angle *= 0.9;
-            }
+            if (document.getElementById("heli-toggle").checked) { p1.angle += 0.2; p2.angle += 0.2; }
+            else { p1.angle += p1.dy * 0.05; p2.angle += p2.dy * 0.05; p1.angle *= 0.9; p2.angle *= 0.9; }
 
             if (keys['w'] && p1.y > 0) p1.y -= 10;
             if (keys['s'] && p1.y < 600 - p1.h) p1.y += 10;
             if (keys['ArrowUp'] && p2.y > 0) p2.y -= 10;
             if (keys['ArrowDown'] && p2.y < 600 - p2.h) p2.y += 10;
 
-            trail.push({x: ball.x, y: ball.y});
-            if (trail.length > 12) trail.shift();
+            balls.forEach((ball, bIndex) => {
+                ball.trail.push({x: ball.x, y: ball.y});
+                if (ball.trail.length > 10) ball.trail.shift();
 
-            if (document.getElementById("caeden-toggle").checked) ball.dy += Math.sin(ball.x * 0.01) * 0.5;
+                ball.y += ball.spin; ball.spin *= 0.98;
+                ball.x += ball.dx; ball.y += ball.dy;
 
-            ball.y += ball.spin;
-            ball.spin *= 0.98;
-            ball.x += ball.dx; ball.y += ball.dy;
-            
-            if (ball.y < 0 || ball.y > 600) { ball.dy *= -1; ball.spin *= -1; }
+                if (ball.y < 0 || ball.y > 600) { ball.dy *= -1; ball.spin *= -1; }
 
-            if (ball.x < p1.x + 15 && ball.y > p1.y && ball.y < p1.y + p1.h) { ball.dx = Math.abs(ball.dx); ball.x = p1.x + 16; handleHit(p1); }
-            if (ball.x > p2.x - 5 && ball.y > p2.y && ball.y < p2.y + p2.h) { ball.dx = -Math.abs(ball.dx); ball.x = p2.x - 6; handleHit(p2); }
+                if (ball.x < p1.x + 15 && ball.y > p1.y && ball.y < p1.y + p1.h) { ball.dx = Math.abs(ball.dx); handleHit(ball, p1); }
+                if (ball.x > p2.x - 5 && ball.y > p2.y && ball.y < p2.y + p2.h) { ball.dx = -Math.abs(ball.dx); handleHit(ball, p2); }
 
-            for (let i = powerups.length - 1; i >= 0; i--) {
-                let p = powerups[i];
-                if (Math.hypot(ball.x - p.x, ball.y - p.y) < 30) {
-                    notifications.push({text: p.type.toUpperCase() + "!", x: p.x, y: p.y, opacity: 1});
-                    if (p.type === 'speed') { ball.dx *= 1.3; }
-                    if (p.type === 'size') { p1.h += 30; p2.h += 30; setTimeout(() => { p1.h = 100; p2.h = 100; }, 5000); }
-                    powerups.splice(i, 1);
+                if (ball.x < 0 || ball.x > 800) {
+                    explode(ball.x, ball.y, ball.color);
+                    if (ball.x < 0) score2++; else score1++;
+                    updateMusicSpeed();
+                    document.getElementById("p1-label").textContent = `${p1Name}: ${score1}`;
+                    document.getElementById("p2-label").textContent = `${p2Name}: ${score2}`;
+                    
+                    if (balls.length > 1) { balls.splice(bIndex, 1); } 
+                    else { resetRound(); }
                 }
-            }
+            });
 
-            if (ball.x < 0) { score2++; resetBall(0); }
-            if (ball.x > 800) { score1++; resetBall(800); }
+            if (score1 >= 10 || score2 >= 10) endGame();
             particles.forEach((p, i) => { p.x += p.dx; p.y += p.dy; p.life--; if(p.life <= 0) particles.splice(i, 1); });
+        }
+
+        function resetRound() {
+            balls = [createBall()]; hits = 0; shakeTime = 15;
+            document.getElementById("power-fill").style.width = "0%";
+        }
+
+        function endGame() {
+            let winner = score1 >= 10 ? p1Name : p2Name;
+            gameActive = false; music.pause();
+            document.getElementById("start-screen").style.display = "flex";
+            document.getElementById("menu-title").textContent = winner + " WINS!";
+            document.getElementById("winner-name").textContent = "👑 " + winner;
         }
 
         function draw() {
             ctx.save();
-            if (shakeTime > 0) { ctx.translate((Math.random()-0.5)*10, (Math.random()-0.5)*10); shakeTime--; }
             ctx.fillStyle = "black"; ctx.fillRect(0, 0, 800, 600);
-            
-            trail.forEach((t, i) => {
-                ctx.globalAlpha = i / 12;
-                ctx.fillStyle = ball.isPower ? `rgb(255, ${i*20}, 0)` : ball.color;
-                ctx.beginPath(); ctx.arc(t.x, t.y, ball.r * (i/12), 0, Math.PI*2); ctx.fill();
+            if (shakeTime > 0) { ctx.translate((Math.random()-0.5)*10, (Math.random()-0.5)*10); shakeTime--; }
+
+            balls.forEach(ball => {
+                ball.trail.forEach((t, i) => {
+                    ctx.globalAlpha = i / 10; ctx.fillStyle = ball.color;
+                    ctx.beginPath(); ctx.arc(t.x, t.y, ball.r * (i/10), 0, Math.PI*2); ctx.fill();
+                });
+                ctx.globalAlpha = 1; ctx.fillStyle = ball.color;
+                ctx.beginPath(); ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI*2); ctx.fill();
             });
 
-            ctx.globalAlpha = 1;
-            ctx.save();
-            ctx.translate(p1.x + 7.5, p1.y + p1.h/2);
-            ctx.rotate(p1.angle);
-            ctx.fillStyle = "#4a90e2";
-            ctx.fillRect(-7.5, -p1.h/2, 15, p1.h);
-            ctx.restore();
+            particles.forEach(p => {
+                ctx.globalAlpha = p.life / 40; ctx.fillStyle = p.color;
+                ctx.fillRect(p.x, p.y, 4, 4);
+            });
 
-            ctx.save();
-            ctx.translate(p2.x + 7.5, p2.y + p2.h/2);
-            ctx.rotate(p2.angle);
-            ctx.fillStyle = "#ff3e3e";
-            ctx.fillRect(-7.5, -p2.h/2, 15, p2.h);
-            ctx.restore();
-            
-            powerups.forEach(p => { ctx.font = "30px Arial"; ctx.textAlign="center"; ctx.fillText(emojiMap[p.type], p.x, p.y+10); });
-            particles.forEach(p => { ctx.fillStyle = p.color; ctx.globalAlpha = p.life/30; ctx.fillRect(p.x, p.y, 5, 5); });
+            [[p1, "#4a90e2"], [p2, "#ff3e3e"]].forEach(([p, color]) => {
+                ctx.save(); ctx.translate(p.x + 7.5, p.y + p.h/2); ctx.rotate(p.angle);
+                ctx.fillStyle = color; ctx.fillRect(-7.5, -p.h/2, 15, p.h); ctx.restore();
+            });
+
             notifications.forEach((n, i) => {
-                ctx.globalAlpha = n.opacity; ctx.fillStyle = "orange"; ctx.font = "bold 20px Arial";
+                ctx.globalAlpha = n.opacity; ctx.fillStyle = "orange"; ctx.font = "bold 20px Courier";
                 ctx.fillText(n.text, n.x, n.y); n.y--; n.opacity -= 0.02; if(n.opacity <= 0) notifications.splice(i, 1);
             });
-            
-            ctx.globalAlpha = 1; ctx.fillStyle = ball.color;
-            ctx.beginPath(); ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI*2); ctx.fill();
-            
-            if (paused) { ctx.fillStyle = "yellow"; ctx.font = "bold 50px Arial"; ctx.textAlign="center"; ctx.fillText("STOP! HAMMER TIME!", 400, 300); }
-            if (countdownActive) { ctx.fillStyle = "white"; ctx.font = "bold 100px Arial"; ctx.textAlign="center"; ctx.fillText(countdown, 400, 320); }
+
+            if (paused) { ctx.globalAlpha = 1; ctx.fillStyle = "yellow"; ctx.font = "30px Arial"; ctx.textAlign="center"; ctx.fillText("STOP! HAMMER TIME!", 400, 300); }
+            if (countdownActive) { ctx.globalAlpha = 1; ctx.fillStyle = "white"; ctx.font = "80px Arial"; ctx.textAlign="center"; ctx.fillText(countdown, 400, 320); }
             ctx.restore();
         }
 
