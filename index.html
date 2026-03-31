@@ -2,74 +2,85 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Caeden Pong: Ultimate Arcade Edition</title>
+    <title>Caeden Pong: The Family Edition</title>
     <style>
         body {
-            background-color: #0f0f0f; color: white; display: flex; flex-direction: column;
+            background-color: #050505; color: white; display: flex; flex-direction: column;
             align-items: center; justify-content: center; height: 100vh; margin: 0;
             font-family: 'Courier New', Courier, monospace; overflow: hidden;
         }
-        #ui-top { display: flex; width: 900px; justify-content: space-between; margin-bottom: 10px; font-size: 0.8rem; font-weight: bold; }
-        #game-container { position: relative; border: 4px solid #333; border-radius: 8px; }
+        #ui-top { display: flex; width: 850px; justify-content: space-between; margin-bottom: 10px; font-weight: bold; font-size: 0.9rem; }
+        #game-container { position: relative; border: 4px solid #333; border-radius: 8px; box-shadow: 0 0 20px rgba(74, 144, 226, 0.2); }
         canvas { background-color: black; display: block; }
         
-        #power-box { width: 800px; height: 15px; background: #222; border: 2px solid #444; margin-top: 10px; border-radius: 10px; overflow: hidden; }
-        #power-fill { width: 0%; height: 100%; background: linear-gradient(90deg, #ff0, #f0f); transition: width 0.3s; }
+        #power-box { width: 800px; height: 12px; background: #222; border: 2px solid #444; margin-top: 10px; border-radius: 10px; overflow: hidden; }
+        #power-fill { width: 0%; height: 100%; background: linear-gradient(90deg, #ff0, #f0f, #0ff); transition: width 0.3s; }
 
         #start-screen {
             position: absolute; top: 0; left: 0; width: 800px; height: 600px;
             background: rgba(0,0,0,0.95); display: flex; flex-direction: column;
             justify-content: center; align-items: center; z-index: 20;
         }
-        .menu-card { background: #1a1a1a; padding: 30px; border-radius: 15px; border: 2px solid #4a90e2; text-align: center; }
-        h1 { font-size: 3rem; color: #4a90e2; margin: 0 0 10px 0; }
+        .menu-card { background: #111; padding: 25px; border-radius: 15px; border: 2px solid #4a90e2; text-align: center; width: 450px; }
         
-        #leaderboard { background: #222; padding: 10px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #444; }
-        
-        input { padding: 10px; margin: 5px; border-radius: 5px; background: #222; color: white; border: 1px solid #444; }
-        button { padding: 10px 25px; background: #4a90e2; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; margin-top: 10px; }
-        
-        .toggle-box { display: flex; align-items: center; gap: 5px; background: #222; padding: 5px 8px; border-radius: 15px; border: 1px solid #444; }
+        .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 15px 0; background: #1a1a1a; padding: 10px; border-radius: 10px; }
+        .toggle-item { display: flex; justify-content: space-between; align-items: center; font-size: 0.7rem; }
+
+        #rewards-modal {
+            display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background: #1a1a1a; padding: 20px; border: 2px solid #ffca28; border-radius: 10px;
+            z-index: 30; width: 300px; text-align: center; box-shadow: 0 0 50px black;
+        }
+
+        select { padding: 8px; background: #222; color: white; border: 1px solid #444; border-radius: 5px; width: 120px; }
+        button { padding: 10px 20px; background: #4a90e2; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; margin: 5px; }
+        .reward-btn { background: #ffca28; color: black; }
+
+        /* Switches */
         .switch { position: relative; display: inline-block; width: 30px; height: 16px; }
         .switch input { opacity: 0; width: 0; height: 0; }
-        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #555; transition: .4s; border-radius: 18px; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #444; transition: .3s; border-radius: 15px; }
         input:checked + .slider { background-color: #4a90e2; }
-        #multi-toggle:checked + .slider { background-color: #f0f; }
-        .slider:before { position: absolute; content: ""; height: 10px; width: 10px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
+        .slider:before { position: absolute; content: ""; height: 10px; width: 10px; left: 3px; bottom: 3px; background-color: white; transition: .3s; border-radius: 50%; }
         input:checked + .slider:before { transform: translateX(14px); }
-        
-        /* Flash effect class */
-        .flash { animation: flash-anim 0.1s ease-out; }
-        @keyframes flash-anim { from { background-color: white; } to { background-color: black; } }
     </style>
 </head>
 <body>
 
-    <audio id="bgMusic" loop>
-        <source src="YOUR_SONG_LINK_HERE.mp3" type="audio/mpeg">
-    </audio>
+    <audio id="bgMusic" loop><source src="YOUR_SONG_LINK_HERE.mp3" type="audio/mpeg"></audio>
 
     <div id="ui-top">
-        <div id="p1-label">Blue: 0</div>
-        <div style="display: flex; gap: 5px;">
-            <div class="toggle-box">CHAOS <label class="switch"><input type="checkbox" id="chaos-toggle"><span class="slider"></span></label></div>
-            <div class="toggle-box">CAEDEN <label class="switch"><input type="checkbox" id="caeden-toggle"><span class="slider"></span></label></div>
-            <div class="toggle-box">HELI <label class="switch"><input type="checkbox" id="heli-toggle"><span class="slider"></span></label></div>
-            <div class="toggle-box" style="color: #f0f;">MAYHEM <label class="switch"><input type="checkbox" id="multi-toggle"><span class="slider"></span></label></div>
-        </div>
-        <div id="p2-label">Red: 0</div>
+        <div id="p1-label">P1: 0</div>
+        <div id="p2-label">P2: 0</div>
     </div>
 
     <div id="game-container">
+        <div id="rewards-modal">
+            <h2 style="color:#ffca28">FAMILY REWARDS</h2>
+            <div id="rewards-list" style="margin-bottom: 15px;"></div>
+            <button onclick="toggleRewards(false)">CLOSE</button>
+        </div>
+
         <div id="start-screen">
             <div class="menu-card">
-                <h1 id="menu-title">CAEDEN PONG</h1>
-                <div id="leaderboard"><div id="winner-name">🏆 No champion yet</div></div>
-                <div id="inputs">
-                    <input type="text" id="p1-input" placeholder="Player 1">
-                    <input type="text" id="p2-input" placeholder="Player 2">
-                    <br><button onclick="initGame()">START MATCH</button>
+                <h1 style="color:#4a90e2; margin:0;">CAEDEN PONG</h1>
+                <p style="font-size:0.7rem; color:#888;">THE FAMILY EDITION</p>
+                
+                <div style="margin: 15px 0;">
+                    <select id="p1-select"><option>DAD</option><option>RORY</option><option>CAEDEN</option><option>QUINN</option><option>MOM</option></select>
+                    <span style="color:#4a90e2; font-weight:bold;"> VS </span>
+                    <select id="p2-select"><option>RORY</option><option>DAD</option><option>CAEDEN</option><option>QUINN</option><option>MOM</option></select>
                 </div>
+
+                <div class="settings-grid">
+                    <div class="toggle-item">CHAOS <label class="switch"><input type="checkbox" id="chaos-toggle"><span class="slider"></span></label></div>
+                    <div class="toggle-item">CAEDEN <label class="switch"><input type="checkbox" id="caeden-toggle"><span class="slider"></span></label></div>
+                    <div class="toggle-item">HELI <label class="switch"><input type="checkbox" id="heli-toggle"><span class="slider"></span></label></div>
+                    <div class="toggle-item">MAYHEM <label class="switch"><input type="checkbox" id="multi-toggle"><span class="slider"></span></label></div>
+                </div>
+
+                <button onclick="initGame()">LAUNCH MATCH</button>
+                <button class="reward-btn" onclick="toggleRewards(true)">REWARDS</button>
             </div>
         </div>
         <canvas id="pongCanvas" width="800" height="600"></canvas>
@@ -81,187 +92,125 @@
         const ctx = canvas.getContext("2d");
         const music = document.getElementById("bgMusic");
         
-        let gameActive = false, paused = false, countdownActive = false;
-        let score1 = 0, score2 = 0, hits = 0, shakeTime = 0, countdown = 0, spawnRate = 4000;
-        let p1Name = "Blue", p2Name = "Red";
+        let gameActive = false, paused = false, freezeFrames = 0;
+        let score1 = 0, score2 = 0, hits = 0, shakeTime = 0, gridPulse = 0;
+        let p1Name = "", p2Name = "";
 
-        let p1 = { x: 20, y: 250, h: 100, dy: 0, lastY: 250, angle: 0 };
-        let p2 = { x: 765, y: 250, h: 100, dy: 0, lastY: 250, angle: 0 };
-        
-        let balls = [];
-        let particles = [], notifications = [], powerups = [];
-        const emojiMap = { 'speed': '⚡', 'size': '📏', 'ghost': '👻', 'gravity': '🌪️' };
+        let p1 = { x: 20, y: 250, h: 100, dy: 0, lastY: 250 };
+        let p2 = { x: 765, y: 250, h: 100, dy: 0, lastY: 250 };
+        let balls = [], particles = [], notifications = [];
+        const family = ["DAD", "RORY", "CAEDEN", "QUINN", "MOM"];
         const keys = {};
 
         window.addEventListener("keydown", e => {
             keys[e.key] = true;
-            if (e.key === " " && gameActive) {
-                paused = !paused;
-                paused ? music.pause() : music.play();
-            }
+            if (e.key === " " && gameActive) { paused = !paused; paused ? music.pause() : music.play(); }
         });
         window.addEventListener("keyup", e => keys[e.key] = false);
 
-        function createBall(x = 400, y = 300, speedBoost = 1) {
-            return {
-                x: x, y: y, r: 8, 
-                dx: (Math.random() > 0.5 ? 5 : -5) * speedBoost, 
-                dy: (Math.random() - 0.5) * 8, 
-                spin: 0, color: "white", isPower: false, trail: [] 
-            };
+        function createBall() {
+            return { x: 400, y: 300, dx: (Math.random() > 0.5 ? 5 : -5), dy: (Math.random() - 0.5) * 8, r: 8, color: "white", isPower: false, trail: [] };
         }
 
         function initGame() {
+            p1Name = document.getElementById("p1-select").value;
+            p2Name = document.getElementById("p2-select").value;
             score1 = 0; score2 = 0; hits = 0; balls = [createBall()];
-            p1Name = document.getElementById("p1-input").value || "Blue";
-            p2Name = document.getElementById("p2-input").value || "Red";
             document.getElementById("start-screen").style.display = "none";
             music.playbackRate = 1.0; music.play();
-            countdown = 3; countdownActive = true;
-            let timer = setInterval(() => {
-                countdown--;
-                if (countdown <= 0) { clearInterval(timer); countdownActive = false; gameActive = true; chaosSpawner(); }
-            }, 1000);
-        }
-
-        function updateMusicSpeed() {
-            // Speed up music based on total score (max 1.5x speed)
-            let totalScore = score1 + score2;
-            music.playbackRate = 1.0 + (totalScore * 0.03); 
-        }
-
-        function explode(x, y, color) {
-            for (let i = 0; i < 30; i++) {
-                particles.push({
-                    x: x, y: y, 
-                    dx: (Math.random() - 0.5) * 10, 
-                    dy: (Math.random() - 0.5) * 10, 
-                    life: 40, color: color
-                });
-            }
+            gameActive = true;
         }
 
         function handleHit(ball, paddle) {
             hits++;
             let impact = (ball.y - (paddle.y + paddle.h / 2)) / (paddle.h / 2);
-            
-            // Mega Pinch
+            ball.dy = impact * 8 + (paddle.dy * 0.5);
+
             if (ball.y < 45 || ball.y > 555) {
-                ball.dx *= 2.0; shakeTime = 25;
-                explode(ball.x, ball.y, "white");
+                ball.dx *= 2.0; shakeTime = 20; freezeFrames = 3;
                 notifications.push({text: "MEGA PINCH!", x: ball.x, y: ball.y, opacity: 1});
             }
 
-            if (document.getElementById("heli-toggle").checked) {
-                ball.dy = (Math.random() - 0.5) * 15;
-                ball.spin = (Math.random() - 0.5) * 10;
-            } else {
-                ball.dy = impact * 8 + paddle.dy * 0.4;
-                ball.spin = paddle.dy * 0.3;
-            }
-
             if (document.getElementById("multi-toggle").checked && hits % 5 === 0 && balls.length < 5) {
-                balls.push(createBall(ball.x, ball.y));
+                balls.push(createBall());
             }
 
-            if (hits >= 10) { 
-                ball.dx *= 1.5; ball.isPower = true; shakeTime = 10;
-                explode(ball.x, ball.y, "orange");
-                notifications.push({text: "FIRE!", x: ball.x, y: ball.y, opacity: 1}); 
-            }
+            if (hits % 10 === 0) { ball.isPower = true; ball.dx *= 1.4; freezeFrames = 5; }
             document.getElementById("power-fill").style.width = ((hits % 10) * 10) + "%";
-            ball.color = `hsl(${Math.random() * 360}, 100%, 50%)`;
+            ball.color = `hsl(${Math.random() * 360}, 100%, 60%)`;
         }
 
         function move() {
-            if (!gameActive || paused) return;
-            p1.dy = p1.y - p1.lastY; p1.lastY = p1.y;
-            p2.dy = p2.y - p2.lastY; p2.lastY = p2.y;
-
-            if (document.getElementById("heli-toggle").checked) { p1.angle += 0.2; p2.angle += 0.2; }
-            else { p1.angle += p1.dy * 0.05; p2.angle += p2.dy * 0.05; p1.angle *= 0.9; p2.angle *= 0.9; }
-
+            if (!gameActive || paused || freezeFrames > 0) { if(freezeFrames > 0) freezeFrames--; return; }
+            
             if (keys['w'] && p1.y > 0) p1.y -= 10;
             if (keys['s'] && p1.y < 600 - p1.h) p1.y += 10;
             if (keys['ArrowUp'] && p2.y > 0) p2.y -= 10;
             if (keys['ArrowDown'] && p2.y < 600 - p2.h) p2.y += 10;
 
+            p1.dy = p1.y - p1.lastY; p1.lastY = p1.y;
+            p2.dy = p2.y - p2.lastY; p2.lastY = p2.y;
+
             balls.forEach((ball, bIndex) => {
                 ball.trail.push({x: ball.x, y: ball.y});
                 if (ball.trail.length > 10) ball.trail.shift();
-
-                ball.y += ball.spin; ball.spin *= 0.98;
                 ball.x += ball.dx; ball.y += ball.dy;
 
-                if (ball.y < 0 || ball.y > 600) { ball.dy *= -1; ball.spin *= -1; }
-
+                if (ball.y < 0 || ball.y > 600) ball.dy *= -1;
                 if (ball.x < p1.x + 15 && ball.y > p1.y && ball.y < p1.y + p1.h) { ball.dx = Math.abs(ball.dx); handleHit(ball, p1); }
                 if (ball.x > p2.x - 5 && ball.y > p2.y && ball.y < p2.y + p2.h) { ball.dx = -Math.abs(ball.dx); handleHit(ball, p2); }
 
                 if (ball.x < 0 || ball.x > 800) {
-                    explode(ball.x, ball.y, ball.color);
-                    if (ball.x < 0) score2++; else score1++;
-                    updateMusicSpeed();
-                    document.getElementById("p1-label").textContent = `${p1Name}: ${score1}`;
-                    document.getElementById("p2-label").textContent = `${p2Name}: ${score2}`;
-                    
-                    if (balls.length > 1) { balls.splice(bIndex, 1); } 
-                    else { resetRound(); }
+                    gridPulse = 20; if (ball.x < 0) score2++; else score1++;
+                    music.playbackRate = 1.0 + ((score1 + score2) * 0.04);
+                    if (balls.length > 1) balls.splice(bIndex, 1); else resetRound();
                 }
             });
-
             if (score1 >= 10 || score2 >= 10) endGame();
-            particles.forEach((p, i) => { p.x += p.dx; p.y += p.dy; p.life--; if(p.life <= 0) particles.splice(i, 1); });
         }
 
-        function resetRound() {
-            balls = [createBall()]; hits = 0; shakeTime = 15;
-            document.getElementById("power-fill").style.width = "0%";
-        }
+        function resetRound() { balls = [createBall()]; hits = 0; shakeTime = 15; }
 
         function endGame() {
-            let winner = score1 >= 10 ? p1Name : p2Name;
             gameActive = false; music.pause();
+            let rewards = JSON.parse(localStorage.getItem('familyRewards')) || {};
+            family.forEach(name => rewards[name] = (rewards[name] || 0) + (name === p1Name ? score1 : name === p2Name ? score2 : 0));
+            localStorage.setItem('familyRewards', JSON.stringify(rewards));
             document.getElementById("start-screen").style.display = "flex";
-            document.getElementById("menu-title").textContent = winner + " WINS!";
-            document.getElementById("winner-name").textContent = "👑 " + winner;
+        }
+
+        function toggleRewards(show) {
+            const modal = document.getElementById('rewards-modal');
+            modal.style.display = show ? 'block' : 'none';
+            if (show) {
+                let r = JSON.parse(localStorage.getItem('familyRewards')) || {};
+                document.getElementById('rewards-list').innerHTML = family.sort((a,b)=>r[b]-r[a]).map(n=>`<div>${n}: ${r[n]||0}</div>`).join('');
+            }
         }
 
         function draw() {
-            ctx.save();
-            ctx.fillStyle = "black"; ctx.fillRect(0, 0, 800, 600);
+            ctx.save(); ctx.fillStyle = "black"; ctx.fillRect(0, 0, 800, 600);
             if (shakeTime > 0) { ctx.translate((Math.random()-0.5)*10, (Math.random()-0.5)*10); shakeTime--; }
-
+            
+            ctx.strokeStyle = `rgba(74, 144, 226, ${0.05 + (gridPulse/100)})`;
+            if (gridPulse > 0) gridPulse--;
+            for(let i=0; i<800; i+=40) { ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, 600); ctx.stroke(); }
+            
             balls.forEach(ball => {
-                ball.trail.forEach((t, i) => {
-                    ctx.globalAlpha = i / 10; ctx.fillStyle = ball.color;
-                    ctx.beginPath(); ctx.arc(t.x, t.y, ball.r * (i/10), 0, Math.PI*2); ctx.fill();
-                });
-                ctx.globalAlpha = 1; ctx.fillStyle = ball.color;
-                ctx.beginPath(); ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI*2); ctx.fill();
+                ball.trail.forEach((t, i) => { ctx.globalAlpha = i/10; ctx.fillStyle = ball.color; ctx.beginPath(); ctx.arc(t.x, t.y, ball.r*(i/10), 0, Math.PI*2); ctx.fill(); });
+                ctx.globalAlpha = 1; ctx.fillStyle = ball.color; ctx.beginPath(); ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI*2); ctx.fill();
             });
 
-            particles.forEach(p => {
-                ctx.globalAlpha = p.life / 40; ctx.fillStyle = p.color;
-                ctx.fillRect(p.x, p.y, 4, 4);
-            });
-
-            [[p1, "#4a90e2"], [p2, "#ff3e3e"]].forEach(([p, color]) => {
-                ctx.save(); ctx.translate(p.x + 7.5, p.y + p.h/2); ctx.rotate(p.angle);
-                ctx.fillStyle = color; ctx.fillRect(-7.5, -p.h/2, 15, p.h); ctx.restore();
-            });
-
-            notifications.forEach((n, i) => {
-                ctx.globalAlpha = n.opacity; ctx.fillStyle = "orange"; ctx.font = "bold 20px Courier";
-                ctx.fillText(n.text, n.x, n.y); n.y--; n.opacity -= 0.02; if(n.opacity <= 0) notifications.splice(i, 1);
-            });
-
-            if (paused) { ctx.globalAlpha = 1; ctx.fillStyle = "yellow"; ctx.font = "30px Arial"; ctx.textAlign="center"; ctx.fillText("STOP! HAMMER TIME!", 400, 300); }
-            if (countdownActive) { ctx.globalAlpha = 1; ctx.fillStyle = "white"; ctx.font = "80px Arial"; ctx.textAlign="center"; ctx.fillText(countdown, 400, 320); }
-            ctx.restore();
+            ctx.fillStyle = "#4a90e2"; ctx.fillRect(p1.x, p1.y, 15, p1.h);
+            ctx.fillStyle = "#ff3e3e"; ctx.fillRect(p2.x, p2.y, 15, p2.h);
+            
+            notifications.forEach((n, i) => { ctx.globalAlpha = n.opacity; ctx.fillStyle = "white"; ctx.fillText(n.text, n.x, n.y); n.y--; n.opacity -= 0.02; if(n.opacity <= 0) notifications.splice(i,1); });
+            
+            document.getElementById("p1-label").textContent = `${p1Name}: ${score1}`;
+            document.getElementById("p2-label").textContent = `${p2Name}: ${score2}`;
+            ctx.restore(); requestAnimationFrame(loop);
         }
-
-        function loop() { move(); draw(); requestAnimationFrame(loop); }
+        function loop() { move(); draw(); }
         loop();
     </script>
 </body>
