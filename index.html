@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Caeden Pong: The Family Edition</title>
+    <title>Caeden Pong: Theme Button Edition</title>
     <style>
         body {
             background-color: #050505; color: white; display: flex; flex-direction: column;
@@ -11,7 +11,7 @@
         }
         #ui-top { display: flex; width: 850px; justify-content: space-between; margin-bottom: 10px; font-weight: bold; font-size: 0.9rem; }
         #game-container { position: relative; border: 4px solid #333; border-radius: 8px; box-shadow: 0 0 20px rgba(74, 144, 226, 0.2); }
-        canvas { background-color: black; display: block; }
+        canvas { display: block; cursor: none; }
         
         #power-box { width: 800px; height: 12px; background: #222; border: 2px solid #444; margin-top: 10px; border-radius: 10px; overflow: hidden; }
         #power-fill { width: 0%; height: 100%; background: linear-gradient(90deg, #ff0, #f0f, #0ff); transition: width 0.3s; }
@@ -21,22 +21,24 @@
             background: rgba(0,0,0,0.95); display: flex; flex-direction: column;
             justify-content: center; align-items: center; z-index: 20;
         }
-        .menu-card { background: #111; padding: 25px; border-radius: 15px; border: 2px solid #4a90e2; text-align: center; width: 450px; }
+        .menu-card { background: #111; padding: 25px; border-radius: 15px; border: 2px solid #4a90e2; text-align: center; width: 480px; }
         
-        .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 15px 0; background: #1a1a1a; padding: 10px; border-radius: 10px; }
+        .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 10px 0; background: #1a1a1a; padding: 10px; border-radius: 10px; }
         .toggle-item { display: flex; justify-content: space-between; align-items: center; font-size: 0.7rem; }
 
-        #rewards-modal {
+        /* Pop-up Modals */
+        #rewards-modal, #theme-modal {
             display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            background: #1a1a1a; padding: 20px; border: 2px solid #ffca28; border-radius: 10px;
-            z-index: 30; width: 300px; text-align: center; box-shadow: 0 0 50px black;
+            background: #1a1a1a; padding: 20px; border: 2px solid #4a90e2; border-radius: 10px;
+            z-index: 30; width: 320px; text-align: center; box-shadow: 0 0 50px black;
         }
+        #rewards-modal { border-color: #ffca28; }
 
-        select { padding: 8px; background: #222; color: white; border: 1px solid #444; border-radius: 5px; width: 120px; }
+        select { padding: 10px; background: #222; color: white; border: 1px solid #444; border-radius: 5px; width: 100%; margin-top: 10px; font-family: inherit; }
         button { padding: 10px 20px; background: #4a90e2; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; margin: 5px; }
         .reward-btn { background: #ffca28; color: black; }
+        .theme-btn { background: #00ffff; color: black; }
 
-        /* Switches */
         .switch { position: relative; display: inline-block; width: 30px; height: 16px; }
         .switch input { opacity: 0; width: 0; height: 0; }
         .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #444; transition: .3s; border-radius: 15px; }
@@ -47,8 +49,6 @@
 </head>
 <body>
 
-    <audio id="bgMusic" loop><source src="YOUR_SONG_LINK_HERE.mp3" type="audio/mpeg"></audio>
-
     <div id="ui-top">
         <div id="p1-label">P1: 0</div>
         <div id="p2-label">P2: 0</div>
@@ -58,18 +58,33 @@
         <div id="rewards-modal">
             <h2 style="color:#ffca28">FAMILY REWARDS</h2>
             <div id="rewards-list" style="margin-bottom: 15px;"></div>
-            <button onclick="toggleRewards(false)">CLOSE</button>
+            <button onclick="toggleModal('rewards-modal', false)">CLOSE</button>
+        </div>
+
+        <div id="theme-modal">
+            <h2 style="color:#00ffff">SELECT THEME</h2>
+            <select id="theme-select">
+                <option value="classic">CLASSIC BLACK</option>
+                <option value="neon">NEON GRID</option>
+                <option value="space">DEEP SPACE</option>
+                <option value="sunset">SUNSET</option>
+                <option value="matrix">MATRIX</option>
+                <option value="inferno">INFERNO</option>
+                <option value="ocean">OCEAN</option>
+                <option value="cyber">CYBERPUNK</option>
+            </select>
+            <br><br>
+            <button onclick="toggleModal('theme-modal', false)">SAVE THEME</button>
         </div>
 
         <div id="start-screen">
             <div class="menu-card">
                 <h1 style="color:#4a90e2; margin:0;">CAEDEN PONG</h1>
-                <p style="font-size:0.7rem; color:#888;">THE FAMILY EDITION</p>
                 
                 <div style="margin: 15px 0;">
-                    <select id="p1-select"><option>DAD</option><option>RORY</option><option>CAEDEN</option><option>QUINN</option><option>MOM</option></select>
-                    <span style="color:#4a90e2; font-weight:bold;"> VS </span>
-                    <select id="p2-select"><option>RORY</option><option>DAD</option><option>CAEDEN</option><option>QUINN</option><option>MOM</option></select>
+                    <select id="p1-select" style="width:120px;"><option>DAD</option><option>RORY</option><option>CAEDEN</option><option>QUINN</option><option>MOM</option></select>
+                    <span style="color:#4a90e2; font-weight:bold; margin: 0 10px;"> VS </span>
+                    <select id="p2-select" style="width:120px;"><option>RORY</option><option>DAD</option><option>CAEDEN</option><option>QUINN</option><option>MOM</option></select>
                 </div>
 
                 <div class="settings-grid">
@@ -79,8 +94,12 @@
                     <div class="toggle-item">MAYHEM <label class="switch"><input type="checkbox" id="multi-toggle"><span class="slider"></span></label></div>
                 </div>
 
-                <button onclick="initGame()">LAUNCH MATCH</button>
-                <button class="reward-btn" onclick="toggleRewards(true)">REWARDS</button>
+                <div style="display: flex; justify-content: center; gap: 5px;">
+                    <button class="theme-btn" onclick="toggleModal('theme-modal', true)">THEME SELECT</button>
+                    <button class="reward-btn" onclick="openRewards()">REWARDS</button>
+                </div>
+                <br>
+                <button style="width: 80%; font-size: 1.2rem;" onclick="initGame()">LAUNCH MATCH</button>
             </div>
         </div>
         <canvas id="pongCanvas" width="800" height="600"></canvas>
@@ -90,109 +109,105 @@
     <script>
         const canvas = document.getElementById("pongCanvas");
         const ctx = canvas.getContext("2d");
-        const music = document.getElementById("bgMusic");
         
         let gameActive = false, paused = false, freezeFrames = 0;
         let score1 = 0, score2 = 0, hits = 0, shakeTime = 0, gridPulse = 0;
         let p1Name = "", p2Name = "";
+        let currentTheme = "classic";
 
         let p1 = { x: 20, y: 250, h: 100, dy: 0, lastY: 250 };
         let p2 = { x: 765, y: 250, h: 100, dy: 0, lastY: 250 };
-        let balls = [], particles = [], notifications = [];
+        let balls = [], notifications = [];
         const family = ["DAD", "RORY", "CAEDEN", "QUINN", "MOM"];
         const keys = {};
 
         window.addEventListener("keydown", e => {
             keys[e.key] = true;
-            if (e.key === " " && gameActive) { paused = !paused; paused ? music.pause() : music.play(); }
+            if (e.key === " " && gameActive) paused = !paused;
         });
         window.addEventListener("keyup", e => keys[e.key] = false);
 
         function createBall() {
-            return { x: 400, y: 300, dx: (Math.random() > 0.5 ? 5 : -5), dy: (Math.random() - 0.5) * 8, r: 8, color: "white", isPower: false, trail: [] };
+            return { x: 400, y: 300, dx: (Math.random() > 0.5 ? 5 : -5), dy: (Math.random() - 0.5) * 8, r: 8, color: "white", trail: [] };
+        }
+
+        function toggleModal(id, show) {
+            document.getElementById(id).style.display = show ? 'block' : 'none';
+        }
+
+        function openRewards() {
+            toggleModal('rewards-modal', true);
+            let r = JSON.parse(localStorage.getItem('familyRewards')) || {};
+            document.getElementById('rewards-list').innerHTML = family.sort((a,b)=>r[b]-r[a]).map(n=>`<div style='margin:5px'>${n}: ${r[n]||0}</div>`).join('');
         }
 
         function initGame() {
             p1Name = document.getElementById("p1-select").value;
             p2Name = document.getElementById("p2-select").value;
+            currentTheme = document.getElementById("theme-select").value;
             score1 = 0; score2 = 0; hits = 0; balls = [createBall()];
             document.getElementById("start-screen").style.display = "none";
-            music.playbackRate = 1.0; music.play();
             gameActive = true;
         }
 
         function handleHit(ball, paddle) {
             hits++;
-            let impact = (ball.y - (paddle.y + paddle.h / 2)) / (paddle.h / 2);
-            ball.dy = impact * 8 + (paddle.dy * 0.5);
-
-            if (ball.y < 45 || ball.y > 555) {
-                ball.dx *= 2.0; shakeTime = 20; freezeFrames = 3;
-                notifications.push({text: "MEGA PINCH!", x: ball.x, y: ball.y, opacity: 1});
-            }
-
-            if (document.getElementById("multi-toggle").checked && hits % 5 === 0 && balls.length < 5) {
-                balls.push(createBall());
-            }
-
-            if (hits % 10 === 0) { ball.isPower = true; ball.dx *= 1.4; freezeFrames = 5; }
+            ball.dy = ((ball.y - (paddle.y + paddle.h / 2)) / (paddle.h / 2)) * 8 + (paddle.dy * 0.5);
+            if (ball.y < 45 || ball.y > 555) { ball.dx *= 2.0; shakeTime = 20; freezeFrames = 3; notifications.push({text: "MEGA PINCH!", x: ball.x, y: ball.y, opacity: 1}); }
+            if (document.getElementById("multi-toggle").checked && hits % 5 === 0 && balls.length < 5) balls.push(createBall());
+            if (hits % 10 === 0) { ball.dx *= 1.4; freezeFrames = 5; }
             document.getElementById("power-fill").style.width = ((hits % 10) * 10) + "%";
             ball.color = `hsl(${Math.random() * 360}, 100%, 60%)`;
         }
 
         function move() {
             if (!gameActive || paused || freezeFrames > 0) { if(freezeFrames > 0) freezeFrames--; return; }
-            
             if (keys['w'] && p1.y > 0) p1.y -= 10;
             if (keys['s'] && p1.y < 600 - p1.h) p1.y += 10;
             if (keys['ArrowUp'] && p2.y > 0) p2.y -= 10;
             if (keys['ArrowDown'] && p2.y < 600 - p2.h) p2.y += 10;
-
             p1.dy = p1.y - p1.lastY; p1.lastY = p1.y;
             p2.dy = p2.y - p2.lastY; p2.lastY = p2.y;
 
             balls.forEach((ball, bIndex) => {
-                ball.trail.push({x: ball.x, y: ball.y});
-                if (ball.trail.length > 10) ball.trail.shift();
+                ball.trail.push({x: ball.x, y: ball.y}); if (ball.trail.length > 10) ball.trail.shift();
                 ball.x += ball.dx; ball.y += ball.dy;
-
                 if (ball.y < 0 || ball.y > 600) ball.dy *= -1;
                 if (ball.x < p1.x + 15 && ball.y > p1.y && ball.y < p1.y + p1.h) { ball.dx = Math.abs(ball.dx); handleHit(ball, p1); }
                 if (ball.x > p2.x - 5 && ball.y > p2.y && ball.y < p2.y + p2.h) { ball.dx = -Math.abs(ball.dx); handleHit(ball, p2); }
-
-                if (ball.x < 0 || ball.x > 800) {
-                    gridPulse = 20; if (ball.x < 0) score2++; else score1++;
-                    music.playbackRate = 1.0 + ((score1 + score2) * 0.04);
-                    if (balls.length > 1) balls.splice(bIndex, 1); else resetRound();
-                }
+                if (ball.x < 0 || ball.x > 800) { gridPulse = 20; if (ball.x < 0) score2++; else score1++; if (balls.length > 1) balls.splice(bIndex, 1); else balls = [createBall()]; hits = 0; }
             });
             if (score1 >= 10 || score2 >= 10) endGame();
         }
 
-        function resetRound() { balls = [createBall()]; hits = 0; shakeTime = 15; }
-
         function endGame() {
-            gameActive = false; music.pause();
-            let rewards = JSON.parse(localStorage.getItem('familyRewards')) || {};
-            family.forEach(name => rewards[name] = (rewards[name] || 0) + (name === p1Name ? score1 : name === p2Name ? score2 : 0));
-            localStorage.setItem('familyRewards', JSON.stringify(rewards));
+            gameActive = false;
+            let r = JSON.parse(localStorage.getItem('familyRewards')) || {};
+            family.forEach(n => r[n] = (r[n] || 0) + (n === p1Name ? score1 : n === p2Name ? score2 : 0));
+            localStorage.setItem('familyRewards', JSON.stringify(r));
             document.getElementById("start-screen").style.display = "flex";
         }
 
-        function toggleRewards(show) {
-            const modal = document.getElementById('rewards-modal');
-            modal.style.display = show ? 'block' : 'none';
-            if (show) {
-                let r = JSON.parse(localStorage.getItem('familyRewards')) || {};
-                document.getElementById('rewards-list').innerHTML = family.sort((a,b)=>r[b]-r[a]).map(n=>`<div>${n}: ${r[n]||0}</div>`).join('');
-            }
-        }
-
         function draw() {
-            ctx.save(); ctx.fillStyle = "black"; ctx.fillRect(0, 0, 800, 600);
+            ctx.save();
+            let bg = "black", grid = "rgba(74, 144, 226, 0.1)", c1 = "#4a90e2", c2 = "#ff3e3e";
+            if (currentTheme === "neon") { bg = "#0a001a"; grid = "rgba(0, 255, 255, 0.1)"; }
+            if (currentTheme === "space") { bg = "#000010"; grid = "rgba(255, 255, 255, 0.05)"; }
+            if (currentTheme === "sunset") { bg = "#2d142c"; grid = "rgba(255, 138, 0, 0.1)"; c1 = "#ff8a00"; c2 = "#e52d27"; }
+            if (currentTheme === "matrix") { bg = "#000500"; grid = "rgba(0, 255, 0, 0.1)"; c1 = "#00ff00"; c2 = "#008800"; }
+            if (currentTheme === "inferno") { bg = "#1a0000"; grid = "rgba(255, 0, 0, 0.1)"; c1 = "#ff4500"; c2 = "#ff0000"; }
+            if (currentTheme === "ocean") { bg = "#001a33"; grid = "rgba(0, 255, 255, 0.1)"; c1 = "#00ffff"; c2 = "#0077ff"; }
+            if (currentTheme === "cyber") { bg = "#120458"; grid = "rgba(255, 0, 255, 0.1)"; c1 = "#ff00ff"; c2 = "#00ffff"; }
+            
+            ctx.fillStyle = bg; ctx.fillRect(0, 0, 800, 600);
             if (shakeTime > 0) { ctx.translate((Math.random()-0.5)*10, (Math.random()-0.5)*10); shakeTime--; }
             
-            ctx.strokeStyle = `rgba(74, 144, 226, ${0.05 + (gridPulse/100)})`;
+            ctx.font = "bold 60px 'Courier New'"; ctx.textAlign = "center"; ctx.globalAlpha = 0.15;
+            ctx.fillStyle = c1; ctx.fillText("CAEDEN", 400, 270);
+            ctx.fillStyle = c2; ctx.fillText("PONG", 400, 330);
+            ctx.globalAlpha = 1.0;
+
+            ctx.strokeStyle = grid.replace("0.1", (0.05 + gridPulse/100).toString());
             if (gridPulse > 0) gridPulse--;
             for(let i=0; i<800; i+=40) { ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, 600); ctx.stroke(); }
             
@@ -201,8 +216,8 @@
                 ctx.globalAlpha = 1; ctx.fillStyle = ball.color; ctx.beginPath(); ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI*2); ctx.fill();
             });
 
-            ctx.fillStyle = "#4a90e2"; ctx.fillRect(p1.x, p1.y, 15, p1.h);
-            ctx.fillStyle = "#ff3e3e"; ctx.fillRect(p2.x, p2.y, 15, p2.h);
+            ctx.fillStyle = c1; ctx.fillRect(p1.x, p1.y, 15, p1.h);
+            ctx.fillStyle = c2; ctx.fillRect(p2.x, p2.y, 15, p2.h);
             
             notifications.forEach((n, i) => { ctx.globalAlpha = n.opacity; ctx.fillStyle = "white"; ctx.fillText(n.text, n.x, n.y); n.y--; n.opacity -= 0.02; if(n.opacity <= 0) notifications.splice(i,1); });
             
