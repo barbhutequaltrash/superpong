@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Caeden Pong: Power-Up Edition</title>
+    <title>Caeden Pong: Master Edition</title>
     <style>
         body {
             background-color: #050505; color: white; display: flex; flex-direction: column;
@@ -10,7 +10,7 @@
             font-family: 'Courier New', Courier, monospace; overflow: hidden;
         }
         #ui-top { display: flex; width: 850px; justify-content: space-between; margin-bottom: 10px; font-weight: bold; }
-        #game-container { position: relative; border: 4px solid #333; border-radius: 8px; }
+        #game-container { position: relative; border: 4px solid #333; border-radius: 8px; box-shadow: 0 0 20px rgba(74, 144, 226, 0.2); }
         canvas { display: block; background: black; }
         
         #start-screen {
@@ -18,57 +18,91 @@
             background: rgba(0,0,0,0.95); display: flex; flex-direction: column;
             justify-content: center; align-items: center; z-index: 20;
         }
-        .menu-card { background: #111; padding: 25px; border-radius: 15px; border: 2px solid #4a90e2; text-align: center; width: 500px; }
+        .menu-card { background: #111; padding: 20px; border-radius: 15px; border: 2px solid #4a90e2; text-align: center; width: 550px; }
         
-        /* Modals */
-        #rewards-modal, #theme-modal, #power-modal {
+        #guide-modal, #theme-modal {
             display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            background: #1a1a1a; padding: 20px; border: 2px solid #4a90e2; border-radius: 10px;
+            background: #1a1a1a; padding: 20px; border: 2px solid #a259ff; border-radius: 10px;
             z-index: 30; width: 400px; text-align: center; box-shadow: 0 0 50px black;
         }
 
-        .power-item { text-align: left; margin: 10px 0; font-size: 0.8rem; border-bottom: 1px solid #333; padding-bottom: 5px; }
-        .power-name { color: #00ffff; font-weight: bold; }
+        .setup-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 15px 0; background: #1a1a1a; padding: 15px; border-radius: 10px; }
+        .setup-item { display: flex; flex-direction: column; align-items: flex-start; gap: 5px; font-size: 0.7rem; }
 
         button { padding: 10px 15px; background: #4a90e2; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; margin: 5px; }
-        .reward-btn { background: #ffca28; color: black; }
-        .guide-btn { background: #a259ff; color: white; }
-        select { padding: 10px; background: #222; color: white; border: 1px solid #444; border-radius: 5px; }
+        .guide-btn { background: #a259ff; }
+        .theme-btn { background: #00ffff; color: black; }
+        select { padding: 8px; background: #222; color: white; border: 1px solid #444; border-radius: 5px; width: 100%; font-family: inherit; }
+        
+        .power-info { text-align: left; font-size: 0.75rem; margin: 8px 0; border-bottom: 1px solid #333; padding-bottom: 4px; }
     </style>
 </head>
 <body>
 
     <div id="ui-top">
-        <div id="p1-ui">P1: 0 <span id="p1-status" style="font-size:0.7rem; margin-left:10px;"></span></div>
-        <div id="p2-ui">P2: 0 <span id="p2-status" style="font-size:0.7rem; margin-left:10px;"></span></div>
+        <div id="p1-ui">P1: 0 <span id="p1-status"></span></div>
+        <div id="event-msg" style="color:#00ffff; font-size:0.8rem;">READY?</div>
+        <div id="p2-ui">P2: 0 <span id="p2-status"></span></div>
     </div>
 
     <div id="game-container">
-        <div id="power-modal">
+        <div id="guide-modal">
             <h2 style="color:#a259ff">POWER-UP GUIDE</h2>
-            <div class="power-item"><span class="power-name">DAD (THE WALL):</span> Double paddle size for 3 seconds.</div>
-            <div class="power-item"><span class="power-name">RORY (GHOST):</span> Turns the ball invisible for 1.5 seconds.</div>
-            <div class="power-item"><span class="power-name">CAEDEN (TURBO):</span> Ball gains a massive speed boost.</div>
-            <div class="power-item"><span class="power-name">QUINN (MAGNET):</span> Ball snaps to your paddle height.</div>
-            <div class="power-item"><span class="power-name">MOM (CHILL):</span> Slows ball down to 30% speed for 2 seconds.</div>
-            <button onclick="toggleModal('power-modal', false)">GOT IT!</button>
+            <div class="power-info"><b>DAD:</b> Wall - Double paddle size for 3s.</div>
+            <div class="power-info"><b>RORY:</b> Ghost - Invisible ball for 1.5s.</div>
+            <div class="power-info"><b>CAEDEN:</b> Turbo - Massive ball speed boost.</div>
+            <div class="power-info"><b>QUINN:</b> Magnet - Ball snaps to your height.</div>
+            <div class="power-info"><b>MOM:</b> Chill - Ball slows to 30% for 2s.</div>
+            <button onclick="toggleModal('guide-modal', false)">CLOSE</button>
+        </div>
+
+        <div id="theme-modal">
+            <h2 style="color:#00ffff">SELECT THEME</h2>
+            <select id="theme-select">
+                <option value="classic">CLASSIC BLACK</option>
+                <option value="neon">NEON BLUE</option>
+                <option value="matrix">MATRIX GREEN</option>
+                <option value="sunset">SUNSET ORANGE</option>
+            </select>
+            <br><br>
+            <button onclick="toggleModal('theme-modal', false)">SAVE</button>
         </div>
 
         <div id="start-screen">
             <div class="menu-card">
-                <h1 style="color:#4a90e2; margin-bottom: 5px;">CAEDEN PONG</h1>
-                <p style="font-size: 0.7rem; color: #888;">SHIFT (P1) / ENTER (P2) for SPECIALS</p>
-                <div>
-                    <select id="p1-select"><option>DAD</option><option>RORY</option><option>CAEDEN</option><option>QUINN</option><option>MOM</option></select>
-                    <span style="font-weight:bold;"> VS </span>
-                    <select id="p2-select"><option>RORY</option><option>DAD</option><option>CAEDEN</option><option>QUINN</option><option>MOM</option></select>
+                <h1 style="color:#4a90e2; margin:0;">CAEDEN PONG</h1>
+                <div class="setup-grid">
+                    <div class="setup-item">
+                        <label>PLAYER 1 (SHIFT)</label>
+                        <select id="p1-select"><option>DAD</option><option>RORY</option><option>CAEDEN</option><option>QUINN</option><option>MOM</option></select>
+                    </div>
+                    <div class="setup-item">
+                        <label>PLAYER 2 (ENTER)</label>
+                        <select id="p2-select"><option>RORY</option><option>DAD</option><option>CAEDEN</option><option>QUINN</option><option>MOM</option></select>
+                    </div>
+                    <div class="setup-item">
+                        <label>ARENA TYPE</label>
+                        <select id="arena-select">
+                            <option value="empty">CLASSIC</option>
+                            <option value="portal">PORTAL EDGES</option>
+                            <option value="bumper">CENTER BUMPER</option>
+                            <option value="gravity">GRAVITY WELL</option>
+                        </select>
+                    </div>
+                    <div class="setup-item">
+                        <label>WEATHER</label>
+                        <select id="weather-select">
+                            <option value="none">CLEAR</option>
+                            <option value="wind">WINDY</option>
+                            <option value="storm">STORM</option>
+                            <option value="blizzard">BLIZZARD</option>
+                        </select>
+                    </div>
                 </div>
+                <button class="guide-btn" onclick="toggleModal('guide-modal', true)">POWER-UPS</button>
+                <button class="theme-btn" onclick="toggleModal('theme-modal', true)">THEMES</button>
                 <br>
-                <div style="display: flex; justify-content: center; gap: 5px;">
-                    <button class="guide-btn" onclick="toggleModal('power-modal', true)">POWER-UP LIST</button>
-                    <button class="reward-btn" onclick="openRewards()">REWARDS</button>
-                </div>
-                <button style="width: 85%; margin-top: 15px; font-size: 1.1rem;" onclick="initGame()">LAUNCH MATCH</button>
+                <button style="width: 90%; font-size: 1.1rem; margin-top: 10px;" onclick="initGame()">START MATCH</button>
             </div>
         </div>
         <canvas id="pongCanvas" width="800" height="600"></canvas>
@@ -79,9 +113,10 @@
         const ctx = canvas.getContext("2d");
         
         let gameActive = false, score1 = 0, score2 = 0;
-        let p1Name = "", p2Name = "";
-        let p1 = { y: 250, h: 100, powerReady: true }, p2 = { y: 250, h: 100, powerReady: true };
-        let balls = [], keys = {};
+        let p1Name = "", p2Name = "", arenaType = "", weatherType = "", currentTheme = "classic";
+        let p1 = { y: 250, h: 100, dy: 0, powerReady: true };
+        let p2 = { y: 250, h: 100, dy: 0, powerReady: true };
+        let balls = [], keys = {}, flash = 0;
 
         window.addEventListener("keydown", e => {
             keys[e.key] = true;
@@ -90,20 +125,23 @@
         });
         window.addEventListener("keyup", e => keys[e.key] = false);
 
+        function toggleModal(id, show) { document.getElementById(id).style.display = show ? 'block' : 'none'; }
+
         function usePower(name, user, ball) {
             user.powerReady = false;
             if (name === "DAD") { user.h = 200; setTimeout(() => user.h = 100, 3000); }
             if (name === "RORY") { ball.ghost = true; setTimeout(() => ball.ghost = false, 1500); }
             if (name === "CAEDEN") { ball.dx *= 2.5; }
             if (name === "QUINN") { ball.y = user.y + user.h/2; }
-            if (name === "MOM") { ball.dx *= 0.3; ball.dy *= 0.3; setTimeout(() => { ball.dx *= 3.3; ball.dy *= 3.3; }, 2000); }
+            if (name === "MOM") { ball.dx *= 0.3; setTimeout(() => ball.dx *= 3.3, 2000); }
         }
 
-        function toggleModal(id, show) { document.getElementById(id).style.display = show ? 'block' : 'none'; }
-        
         function initGame() {
             p1Name = document.getElementById("p1-select").value;
             p2Name = document.getElementById("p2-select").value;
+            arenaType = document.getElementById("arena-select").value;
+            weatherType = document.getElementById("weather-select").value;
+            currentTheme = document.getElementById("theme-select").value;
             score1 = 0; score2 = 0;
             resetBall();
             document.getElementById("start-screen").style.display = "none";
@@ -111,23 +149,43 @@
         }
 
         function resetBall() {
-            balls = [{ x: 400, y: 300, dx: 5, dy: 5, r: 8, ghost: false }];
+            balls = [{ x: 400, y: 300, dx: 5, dy: 3, r: 8, ghost: false }];
             p1.powerReady = true; p2.powerReady = true;
             if (score1 >= 10 || score2 >= 10) endGame();
         }
 
+        function endGame() {
+            gameActive = false;
+            document.getElementById("start-screen").style.display = "flex";
+        }
+
         function loop() {
             if (gameActive) {
-                if (keys['w'] && p1.y > 0) p1.y -= 8;
-                if (keys['s'] && p1.y < 600 - p1.h) p1.y += 8;
-                if (keys['ArrowUp'] && p2.y > 0) p2.y -= 8;
-                if (keys['ArrowDown'] && p2.y < 600 - p2.h) p2.y += 8;
+                if (keys['w']) p1.dy -= 1.5; if (keys['s']) p1.dy += 1.5;
+                if (keys['ArrowUp']) p2.dy -= 1.5; if (keys['ArrowDown']) p2.dy += 1.5;
+
+                let friction = (weatherType === "blizzard") ? 0.96 : 0.7;
+                p1.y += p1.dy; p2.y += p2.dy;
+                p1.dy *= friction; p2.dy *= friction;
+                p1.y = Math.max(0, Math.min(600 - p1.h, p1.y));
+                p2.y = Math.max(0, Math.min(600 - p2.h, p2.y));
 
                 balls.forEach(ball => {
+                    if (weatherType === "wind") ball.dy += Math.sin(Date.now()/500) * 0.2;
+                    if (weatherType === "storm" && Math.random() < 0.005) { ball.x += (Math.random()-0.5)*60; flash = 4; }
+                    if (arenaType === "gravity") {
+                        ball.dx += (400 - ball.x) * 0.0015; ball.dy += (300 - ball.y) * 0.0015;
+                    }
                     ball.x += ball.dx; ball.y += ball.dy;
-                    if (ball.y < 0 || ball.y > 600) ball.dy *= -1;
-                    if (ball.x < 35 && ball.y > p1.y && ball.y < p1.y + p1.h) ball.dx = Math.abs(ball.dx);
-                    if (ball.x > 765 && ball.y > p2.y && ball.y < p2.y + p2.h) ball.dx = -Math.abs(ball.dx);
+
+                    if (arenaType === "portal") {
+                        if (ball.y < 0) ball.y = 595; if (ball.y > 600) ball.y = 5;
+                    } else if (ball.y < 0 || ball.y > 600) ball.dy *= -1;
+
+                    if (arenaType === "bumper" && ball.x > 385 && ball.x < 415 && ball.y > 250 && ball.y < 350) ball.dx *= -1.1;
+                    if (ball.x < 35 && ball.y > p1.y && ball.y < p1.y + p1.h) ball.dx = Math.abs(ball.dx) + 0.2;
+                    if (ball.x > 765 && ball.y > p2.y && ball.y < p2.y + p2.h) ball.dx = -Math.abs(ball.dx) - 0.2;
+
                     if (ball.x < 0) { score2++; resetBall(); }
                     if (ball.x > 800) { score1++; resetBall(); }
                 });
@@ -137,16 +195,20 @@
         }
 
         function draw() {
-            ctx.fillStyle = "black"; ctx.fillRect(0, 0, 800, 600);
+            let bg = "black", accent = "#4a90e2";
+            if (currentTheme === "neon") bg = "#000b1e", accent = "#00ffff";
+            if (currentTheme === "matrix") bg = "#000d00", accent = "#00ff00";
+            if (currentTheme === "sunset") bg = "#1e0b00", accent = "#ff8c00";
+
+            ctx.fillStyle = flash > 0 ? "#555" : bg; 
+            if (flash > 0) flash--;
+            ctx.fillRect(0, 0, 800, 600);
             
-            // Background Text
-            ctx.font = "bold 50px Courier"; ctx.textAlign = "center"; ctx.globalAlpha = 0.1;
-            ctx.fillStyle = "blue"; ctx.fillText("CAEDEN", 400, 270);
-            ctx.fillStyle = "red"; ctx.fillText("PONG", 400, 330);
-            ctx.globalAlpha = 1.0;
+            if (arenaType === "bumper") { ctx.fillStyle = accent; ctx.fillRect(392, 250, 16, 100); }
+            if (arenaType === "gravity") { ctx.strokeStyle = accent; ctx.beginPath(); ctx.arc(400, 300, 25, 0, Math.PI*2); ctx.stroke(); }
 
             balls.forEach(b => {
-                ctx.globalAlpha = b.ghost ? 0.15 : 1.0;
+                ctx.globalAlpha = b.ghost ? 0.2 : 1.0;
                 ctx.fillStyle = "white"; ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, Math.PI*2); ctx.fill();
             });
 
@@ -156,9 +218,8 @@
             ctx.fillStyle = p2.powerReady ? "#ffaa00" : "#444";
             ctx.fillRect(765, p2.y, 15, p2.h);
             
-            // Update UI status
-            document.getElementById("p1-ui").innerHTML = `${p1Name}: ${score1} <span style="color:${p1.powerReady?'#00ffff':'#666'}">${p1.powerReady?'[READY]':'[USED]'}</span>`;
-            document.getElementById("p2-ui").innerHTML = `${p2Name}: ${score2} <span style="color:${p2.powerReady?'#ffaa00':'#666'}">${p2.powerReady?'[READY]':'[USED]'}</span>`;
+            document.getElementById("p1-ui").innerHTML = `P1: ${score1} <span style="color:#00ffff">${p1.powerReady?'[READY]':''}</span>`;
+            document.getElementById("p2-ui").innerHTML = `P2: ${score2} <span style="color:#ffaa00">${p2.powerReady?'[READY]':''}</span>`;
         }
         loop();
     </script>
