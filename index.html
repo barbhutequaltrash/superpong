@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Caeden Pong: Physics & Fire</title>
+    <title>Caeden Pong: Helicopter Physics</title>
     <style>
         body {
             background-color: #0f0f0f; color: white; display: flex; flex-direction: column;
@@ -73,9 +73,11 @@
         let score1 = 0, score2 = 0, hits = 0, shakeTime = 0, countdown = 0, spawnRate = 4000;
         let p1Name = "Blue", p2Name = "Red";
 
-        let p1 = { x: 20, y: 250, h: 100, dy: 0, lastY: 250 };
-        let p2 = { x: 765, y: 250, h: 100, dy: 0, lastY: 250 };
-        let ball = { x: 400, y: 300, r: 8, dx: 5, dy: 5, color: "white", isPower: false };
+        // Added 'angle' for Helicopter Mode
+        let p1 = { x: 20, y: 250, h: 100, dy: 0, lastY: 250, angle: 0 };
+        let p2 = { x: 765, y: 250, h: 100, dy: 0, lastY: 250, angle: 0 };
+        // Added 'spin' for curving the ball
+        let ball = { x: 400, y: 300, r: 8, dx: 5, dy: 5, spin: 0, color: "white", isPower: false };
         
         let trail = [], particles = [], notifications = [], powerups = [];
         const emojiMap = { 'speed': '⚡', 'size': '📏', 'ghost': '👻', 'gravity': '🌪️' };
@@ -114,10 +116,12 @@
 
         function handleHit(paddle) {
             hits++;
-            // Physics: Curve based on where ball hits paddle (-1 to 1)
             let impact = (ball.y - (paddle.y + paddle.h / 2)) / (paddle.h / 2);
-            ball.dy = impact * 8; // Curve intensity
-            ball.dy += paddle.dy * 0.4; // Paddle momentum influence
+            ball.dy = impact * 8; 
+            ball.dy += paddle.dy * 0.4; 
+
+            // Physics: Spin based on paddle velocity
+            ball.spin = paddle.dy * 0.3;
 
             if (hits >= 10) { 
                 ball.dx *= 2; ball.isPower = true; hits = 0; 
@@ -131,7 +135,7 @@
 
         function resetBall(scoredX) {
             for(let i=0; i<20; i++) particles.push({x: scoredX, y: ball.y, dx: (Math.random()-0.5)*15, dy: (Math.random()-0.5)*15, life: 30, color: ball.color});
-            hits = 0; ball.isPower = false; trail = []; spawnRate = 4000;
+            hits = 0; ball.isPower = false; ball.spin = 0; trail = []; spawnRate = 4000;
             document.getElementById("power-fill").style.width = "0%";
             ball.x = 400; ball.y = 300; ball.dx = (Math.random() > 0.5 ? 5 : -5); ball.dy = (Math.random()-0.5)*8;
             ball.color = "white"; shakeTime = 15;
@@ -151,6 +155,10 @@
             p1.dy = p1.y - p1.lastY; p1.lastY = p1.y;
             p2.dy = p2.y - p2.lastY; p2.lastY = p2.y;
 
+            // Update Helicopter Spin
+            p1.angle += p1.dy * 0.05;
+            p2.angle += p2.dy * 0.05;
+
             if (keys['w'] && p1.y > 0) p1.y -= 10;
             if (keys['s'] && p1.y < 600 - p1.h) p1.y += 10;
             if (keys['ArrowUp'] && p2.y > 0) p2.y -= 10;
@@ -161,9 +169,14 @@
 
             if (document.getElementById("caeden-toggle").checked) ball.dy += Math.sin(ball.x * 0.01) * 0.5;
 
-            ball.x += ball.dx; ball.y += ball.dy;
-            if (ball.y < 0 || ball.y > 600) ball.dy *= -1;
+            // Apply spin to ball Y axis and decay it
+            ball.y += ball.spin;
+            ball.spin *= 0.98;
 
+            ball.x += ball.dx; ball.y += ball.dy;
+            if (ball.y < 0 || ball.y > 600) { ball.dy *= -1; ball.spin *= -1; }
+
+            // Collision detection
             if (ball.x < p1.x + 15 && ball.y > p1.y && ball.y < p1.y + p1.h) { ball.dx = Math.abs(ball.dx); ball.x = p1.x + 16; handleHit(p1); }
             if (ball.x > p2.x - 5 && ball.y > p2.y && ball.y < p2.y + p2.h) { ball.dx = -Math.abs(ball.dx); ball.x = p2.x - 6; handleHit(p2); }
 
@@ -194,8 +207,22 @@
             });
 
             ctx.globalAlpha = 1;
-            ctx.fillStyle = "#4a90e2"; ctx.fillRect(p1.x, p1.y, 15, p1.h);
-            ctx.fillStyle = "#ff3e3e"; ctx.fillRect(p2.x, p2.y, 15, p2.h);
+
+            // DRAW HELICOPTER PADDLE 1
+            ctx.save();
+            ctx.translate(p1.x + 7.5, p1.y + p1.h/2);
+            ctx.rotate(p1.angle);
+            ctx.fillStyle = "#4a90e2";
+            ctx.fillRect(-7.5, -p1.h/2, 15, p1.h);
+            ctx.restore();
+
+            // DRAW HELICOPTER PADDLE 2
+            ctx.save();
+            ctx.translate(p2.x + 7.5, p2.y + p2.h/2);
+            ctx.rotate(p2.angle);
+            ctx.fillStyle = "#ff3e3e";
+            ctx.fillRect(-7.5, -p2.h/2, 15, p2.h);
+            ctx.restore();
             
             powerups.forEach(p => { ctx.font = "30px Arial"; ctx.textAlign="center"; ctx.fillText(emojiMap[p.type], p.x, p.y+10); });
             particles.forEach(p => { ctx.fillStyle = p.color; ctx.globalAlpha = p.life/30; ctx.fillRect(p.x, p.y, 5, 5); });
