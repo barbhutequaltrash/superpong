@@ -2,230 +2,164 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Caeden Pong: Theme Button Edition</title>
+    <title>Caeden Pong: Power-Up Edition</title>
     <style>
         body {
             background-color: #050505; color: white; display: flex; flex-direction: column;
             align-items: center; justify-content: center; height: 100vh; margin: 0;
             font-family: 'Courier New', Courier, monospace; overflow: hidden;
         }
-        #ui-top { display: flex; width: 850px; justify-content: space-between; margin-bottom: 10px; font-weight: bold; font-size: 0.9rem; }
-        #game-container { position: relative; border: 4px solid #333; border-radius: 8px; box-shadow: 0 0 20px rgba(74, 144, 226, 0.2); }
-        canvas { display: block; cursor: none; }
+        #ui-top { display: flex; width: 850px; justify-content: space-between; margin-bottom: 10px; font-weight: bold; }
+        #game-container { position: relative; border: 4px solid #333; border-radius: 8px; }
+        canvas { display: block; background: black; }
         
-        #power-box { width: 800px; height: 12px; background: #222; border: 2px solid #444; margin-top: 10px; border-radius: 10px; overflow: hidden; }
-        #power-fill { width: 0%; height: 100%; background: linear-gradient(90deg, #ff0, #f0f, #0ff); transition: width 0.3s; }
-
         #start-screen {
             position: absolute; top: 0; left: 0; width: 800px; height: 600px;
             background: rgba(0,0,0,0.95); display: flex; flex-direction: column;
             justify-content: center; align-items: center; z-index: 20;
         }
-        .menu-card { background: #111; padding: 25px; border-radius: 15px; border: 2px solid #4a90e2; text-align: center; width: 480px; }
+        .menu-card { background: #111; padding: 25px; border-radius: 15px; border: 2px solid #4a90e2; text-align: center; width: 500px; }
         
-        .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 10px 0; background: #1a1a1a; padding: 10px; border-radius: 10px; }
-        .toggle-item { display: flex; justify-content: space-between; align-items: center; font-size: 0.7rem; }
-
-        /* Pop-up Modals */
-        #rewards-modal, #theme-modal {
+        /* Modals */
+        #rewards-modal, #theme-modal, #power-modal {
             display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
             background: #1a1a1a; padding: 20px; border: 2px solid #4a90e2; border-radius: 10px;
-            z-index: 30; width: 320px; text-align: center; box-shadow: 0 0 50px black;
+            z-index: 30; width: 400px; text-align: center; box-shadow: 0 0 50px black;
         }
-        #rewards-modal { border-color: #ffca28; }
 
-        select { padding: 10px; background: #222; color: white; border: 1px solid #444; border-radius: 5px; width: 100%; margin-top: 10px; font-family: inherit; }
-        button { padding: 10px 20px; background: #4a90e2; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; margin: 5px; }
+        .power-item { text-align: left; margin: 10px 0; font-size: 0.8rem; border-bottom: 1px solid #333; padding-bottom: 5px; }
+        .power-name { color: #00ffff; font-weight: bold; }
+
+        button { padding: 10px 15px; background: #4a90e2; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; margin: 5px; }
         .reward-btn { background: #ffca28; color: black; }
-        .theme-btn { background: #00ffff; color: black; }
-
-        .switch { position: relative; display: inline-block; width: 30px; height: 16px; }
-        .switch input { opacity: 0; width: 0; height: 0; }
-        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #444; transition: .3s; border-radius: 15px; }
-        input:checked + .slider { background-color: #4a90e2; }
-        .slider:before { position: absolute; content: ""; height: 10px; width: 10px; left: 3px; bottom: 3px; background-color: white; transition: .3s; border-radius: 50%; }
-        input:checked + .slider:before { transform: translateX(14px); }
+        .guide-btn { background: #a259ff; color: white; }
+        select { padding: 10px; background: #222; color: white; border: 1px solid #444; border-radius: 5px; }
     </style>
 </head>
 <body>
 
     <div id="ui-top">
-        <div id="p1-label">P1: 0</div>
-        <div id="p2-label">P2: 0</div>
+        <div id="p1-ui">P1: 0 <span id="p1-status" style="font-size:0.7rem; margin-left:10px;"></span></div>
+        <div id="p2-ui">P2: 0 <span id="p2-status" style="font-size:0.7rem; margin-left:10px;"></span></div>
     </div>
 
     <div id="game-container">
-        <div id="rewards-modal">
-            <h2 style="color:#ffca28">FAMILY REWARDS</h2>
-            <div id="rewards-list" style="margin-bottom: 15px;"></div>
-            <button onclick="toggleModal('rewards-modal', false)">CLOSE</button>
-        </div>
-
-        <div id="theme-modal">
-            <h2 style="color:#00ffff">SELECT THEME</h2>
-            <select id="theme-select">
-                <option value="classic">CLASSIC BLACK</option>
-                <option value="neon">NEON GRID</option>
-                <option value="space">DEEP SPACE</option>
-                <option value="sunset">SUNSET</option>
-                <option value="matrix">MATRIX</option>
-                <option value="inferno">INFERNO</option>
-                <option value="ocean">OCEAN</option>
-                <option value="cyber">CYBERPUNK</option>
-            </select>
-            <br><br>
-            <button onclick="toggleModal('theme-modal', false)">SAVE THEME</button>
+        <div id="power-modal">
+            <h2 style="color:#a259ff">POWER-UP GUIDE</h2>
+            <div class="power-item"><span class="power-name">DAD (THE WALL):</span> Double paddle size for 3 seconds.</div>
+            <div class="power-item"><span class="power-name">RORY (GHOST):</span> Turns the ball invisible for 1.5 seconds.</div>
+            <div class="power-item"><span class="power-name">CAEDEN (TURBO):</span> Ball gains a massive speed boost.</div>
+            <div class="power-item"><span class="power-name">QUINN (MAGNET):</span> Ball snaps to your paddle height.</div>
+            <div class="power-item"><span class="power-name">MOM (CHILL):</span> Slows ball down to 30% speed for 2 seconds.</div>
+            <button onclick="toggleModal('power-modal', false)">GOT IT!</button>
         </div>
 
         <div id="start-screen">
             <div class="menu-card">
-                <h1 style="color:#4a90e2; margin:0;">CAEDEN PONG</h1>
-                
-                <div style="margin: 15px 0;">
-                    <select id="p1-select" style="width:120px;"><option>DAD</option><option>RORY</option><option>CAEDEN</option><option>QUINN</option><option>MOM</option></select>
-                    <span style="color:#4a90e2; font-weight:bold; margin: 0 10px;"> VS </span>
-                    <select id="p2-select" style="width:120px;"><option>RORY</option><option>DAD</option><option>CAEDEN</option><option>QUINN</option><option>MOM</option></select>
-                </div>
-
-                <div class="settings-grid">
-                    <div class="toggle-item">CHAOS <label class="switch"><input type="checkbox" id="chaos-toggle"><span class="slider"></span></label></div>
-                    <div class="toggle-item">CAEDEN <label class="switch"><input type="checkbox" id="caeden-toggle"><span class="slider"></span></label></div>
-                    <div class="toggle-item">HELI <label class="switch"><input type="checkbox" id="heli-toggle"><span class="slider"></span></label></div>
-                    <div class="toggle-item">MAYHEM <label class="switch"><input type="checkbox" id="multi-toggle"><span class="slider"></span></label></div>
-                </div>
-
-                <div style="display: flex; justify-content: center; gap: 5px;">
-                    <button class="theme-btn" onclick="toggleModal('theme-modal', true)">THEME SELECT</button>
-                    <button class="reward-btn" onclick="openRewards()">REWARDS</button>
+                <h1 style="color:#4a90e2; margin-bottom: 5px;">CAEDEN PONG</h1>
+                <p style="font-size: 0.7rem; color: #888;">SHIFT (P1) / ENTER (P2) for SPECIALS</p>
+                <div>
+                    <select id="p1-select"><option>DAD</option><option>RORY</option><option>CAEDEN</option><option>QUINN</option><option>MOM</option></select>
+                    <span style="font-weight:bold;"> VS </span>
+                    <select id="p2-select"><option>RORY</option><option>DAD</option><option>CAEDEN</option><option>QUINN</option><option>MOM</option></select>
                 </div>
                 <br>
-                <button style="width: 80%; font-size: 1.2rem;" onclick="initGame()">LAUNCH MATCH</button>
+                <div style="display: flex; justify-content: center; gap: 5px;">
+                    <button class="guide-btn" onclick="toggleModal('power-modal', true)">POWER-UP LIST</button>
+                    <button class="reward-btn" onclick="openRewards()">REWARDS</button>
+                </div>
+                <button style="width: 85%; margin-top: 15px; font-size: 1.1rem;" onclick="initGame()">LAUNCH MATCH</button>
             </div>
         </div>
         <canvas id="pongCanvas" width="800" height="600"></canvas>
     </div>
-    <div id="power-box"><div id="power-fill"></div></div>
 
     <script>
         const canvas = document.getElementById("pongCanvas");
         const ctx = canvas.getContext("2d");
         
-        let gameActive = false, paused = false, freezeFrames = 0;
-        let score1 = 0, score2 = 0, hits = 0, shakeTime = 0, gridPulse = 0;
+        let gameActive = false, score1 = 0, score2 = 0;
         let p1Name = "", p2Name = "";
-        let currentTheme = "classic";
-
-        let p1 = { x: 20, y: 250, h: 100, dy: 0, lastY: 250 };
-        let p2 = { x: 765, y: 250, h: 100, dy: 0, lastY: 250 };
-        let balls = [], notifications = [];
-        const family = ["DAD", "RORY", "CAEDEN", "QUINN", "MOM"];
-        const keys = {};
+        let p1 = { y: 250, h: 100, powerReady: true }, p2 = { y: 250, h: 100, powerReady: true };
+        let balls = [], keys = {};
 
         window.addEventListener("keydown", e => {
             keys[e.key] = true;
-            if (e.key === " " && gameActive) paused = !paused;
+            if (e.key === "Shift" && p1.powerReady && gameActive) usePower(p1Name, p1, balls[0]);
+            if (e.key === "Enter" && p2.powerReady && gameActive) usePower(p2Name, p2, balls[0]);
         });
         window.addEventListener("keyup", e => keys[e.key] = false);
 
-        function createBall() {
-            return { x: 400, y: 300, dx: (Math.random() > 0.5 ? 5 : -5), dy: (Math.random() - 0.5) * 8, r: 8, color: "white", trail: [] };
+        function usePower(name, user, ball) {
+            user.powerReady = false;
+            if (name === "DAD") { user.h = 200; setTimeout(() => user.h = 100, 3000); }
+            if (name === "RORY") { ball.ghost = true; setTimeout(() => ball.ghost = false, 1500); }
+            if (name === "CAEDEN") { ball.dx *= 2.5; }
+            if (name === "QUINN") { ball.y = user.y + user.h/2; }
+            if (name === "MOM") { ball.dx *= 0.3; ball.dy *= 0.3; setTimeout(() => { ball.dx *= 3.3; ball.dy *= 3.3; }, 2000); }
         }
 
-        function toggleModal(id, show) {
-            document.getElementById(id).style.display = show ? 'block' : 'none';
-        }
-
-        function openRewards() {
-            toggleModal('rewards-modal', true);
-            let r = JSON.parse(localStorage.getItem('familyRewards')) || {};
-            document.getElementById('rewards-list').innerHTML = family.sort((a,b)=>r[b]-r[a]).map(n=>`<div style='margin:5px'>${n}: ${r[n]||0}</div>`).join('');
-        }
-
+        function toggleModal(id, show) { document.getElementById(id).style.display = show ? 'block' : 'none'; }
+        
         function initGame() {
             p1Name = document.getElementById("p1-select").value;
             p2Name = document.getElementById("p2-select").value;
-            currentTheme = document.getElementById("theme-select").value;
-            score1 = 0; score2 = 0; hits = 0; balls = [createBall()];
+            score1 = 0; score2 = 0;
+            resetBall();
             document.getElementById("start-screen").style.display = "none";
             gameActive = true;
         }
 
-        function handleHit(ball, paddle) {
-            hits++;
-            ball.dy = ((ball.y - (paddle.y + paddle.h / 2)) / (paddle.h / 2)) * 8 + (paddle.dy * 0.5);
-            if (ball.y < 45 || ball.y > 555) { ball.dx *= 2.0; shakeTime = 20; freezeFrames = 3; notifications.push({text: "MEGA PINCH!", x: ball.x, y: ball.y, opacity: 1}); }
-            if (document.getElementById("multi-toggle").checked && hits % 5 === 0 && balls.length < 5) balls.push(createBall());
-            if (hits % 10 === 0) { ball.dx *= 1.4; freezeFrames = 5; }
-            document.getElementById("power-fill").style.width = ((hits % 10) * 10) + "%";
-            ball.color = `hsl(${Math.random() * 360}, 100%, 60%)`;
-        }
-
-        function move() {
-            if (!gameActive || paused || freezeFrames > 0) { if(freezeFrames > 0) freezeFrames--; return; }
-            if (keys['w'] && p1.y > 0) p1.y -= 10;
-            if (keys['s'] && p1.y < 600 - p1.h) p1.y += 10;
-            if (keys['ArrowUp'] && p2.y > 0) p2.y -= 10;
-            if (keys['ArrowDown'] && p2.y < 600 - p2.h) p2.y += 10;
-            p1.dy = p1.y - p1.lastY; p1.lastY = p1.y;
-            p2.dy = p2.y - p2.lastY; p2.lastY = p2.y;
-
-            balls.forEach((ball, bIndex) => {
-                ball.trail.push({x: ball.x, y: ball.y}); if (ball.trail.length > 10) ball.trail.shift();
-                ball.x += ball.dx; ball.y += ball.dy;
-                if (ball.y < 0 || ball.y > 600) ball.dy *= -1;
-                if (ball.x < p1.x + 15 && ball.y > p1.y && ball.y < p1.y + p1.h) { ball.dx = Math.abs(ball.dx); handleHit(ball, p1); }
-                if (ball.x > p2.x - 5 && ball.y > p2.y && ball.y < p2.y + p2.h) { ball.dx = -Math.abs(ball.dx); handleHit(ball, p2); }
-                if (ball.x < 0 || ball.x > 800) { gridPulse = 20; if (ball.x < 0) score2++; else score1++; if (balls.length > 1) balls.splice(bIndex, 1); else balls = [createBall()]; hits = 0; }
-            });
+        function resetBall() {
+            balls = [{ x: 400, y: 300, dx: 5, dy: 5, r: 8, ghost: false }];
+            p1.powerReady = true; p2.powerReady = true;
             if (score1 >= 10 || score2 >= 10) endGame();
         }
 
-        function endGame() {
-            gameActive = false;
-            let r = JSON.parse(localStorage.getItem('familyRewards')) || {};
-            family.forEach(n => r[n] = (r[n] || 0) + (n === p1Name ? score1 : n === p2Name ? score2 : 0));
-            localStorage.setItem('familyRewards', JSON.stringify(r));
-            document.getElementById("start-screen").style.display = "flex";
+        function loop() {
+            if (gameActive) {
+                if (keys['w'] && p1.y > 0) p1.y -= 8;
+                if (keys['s'] && p1.y < 600 - p1.h) p1.y += 8;
+                if (keys['ArrowUp'] && p2.y > 0) p2.y -= 8;
+                if (keys['ArrowDown'] && p2.y < 600 - p2.h) p2.y += 8;
+
+                balls.forEach(ball => {
+                    ball.x += ball.dx; ball.y += ball.dy;
+                    if (ball.y < 0 || ball.y > 600) ball.dy *= -1;
+                    if (ball.x < 35 && ball.y > p1.y && ball.y < p1.y + p1.h) ball.dx = Math.abs(ball.dx);
+                    if (ball.x > 765 && ball.y > p2.y && ball.y < p2.y + p2.h) ball.dx = -Math.abs(ball.dx);
+                    if (ball.x < 0) { score2++; resetBall(); }
+                    if (ball.x > 800) { score1++; resetBall(); }
+                });
+            }
+            draw();
+            requestAnimationFrame(loop);
         }
 
         function draw() {
-            ctx.save();
-            let bg = "black", grid = "rgba(74, 144, 226, 0.1)", c1 = "#4a90e2", c2 = "#ff3e3e";
-            if (currentTheme === "neon") { bg = "#0a001a"; grid = "rgba(0, 255, 255, 0.1)"; }
-            if (currentTheme === "space") { bg = "#000010"; grid = "rgba(255, 255, 255, 0.05)"; }
-            if (currentTheme === "sunset") { bg = "#2d142c"; grid = "rgba(255, 138, 0, 0.1)"; c1 = "#ff8a00"; c2 = "#e52d27"; }
-            if (currentTheme === "matrix") { bg = "#000500"; grid = "rgba(0, 255, 0, 0.1)"; c1 = "#00ff00"; c2 = "#008800"; }
-            if (currentTheme === "inferno") { bg = "#1a0000"; grid = "rgba(255, 0, 0, 0.1)"; c1 = "#ff4500"; c2 = "#ff0000"; }
-            if (currentTheme === "ocean") { bg = "#001a33"; grid = "rgba(0, 255, 255, 0.1)"; c1 = "#00ffff"; c2 = "#0077ff"; }
-            if (currentTheme === "cyber") { bg = "#120458"; grid = "rgba(255, 0, 255, 0.1)"; c1 = "#ff00ff"; c2 = "#00ffff"; }
+            ctx.fillStyle = "black"; ctx.fillRect(0, 0, 800, 600);
             
-            ctx.fillStyle = bg; ctx.fillRect(0, 0, 800, 600);
-            if (shakeTime > 0) { ctx.translate((Math.random()-0.5)*10, (Math.random()-0.5)*10); shakeTime--; }
-            
-            ctx.font = "bold 60px 'Courier New'"; ctx.textAlign = "center"; ctx.globalAlpha = 0.15;
-            ctx.fillStyle = c1; ctx.fillText("CAEDEN", 400, 270);
-            ctx.fillStyle = c2; ctx.fillText("PONG", 400, 330);
+            // Background Text
+            ctx.font = "bold 50px Courier"; ctx.textAlign = "center"; ctx.globalAlpha = 0.1;
+            ctx.fillStyle = "blue"; ctx.fillText("CAEDEN", 400, 270);
+            ctx.fillStyle = "red"; ctx.fillText("PONG", 400, 330);
             ctx.globalAlpha = 1.0;
 
-            ctx.strokeStyle = grid.replace("0.1", (0.05 + gridPulse/100).toString());
-            if (gridPulse > 0) gridPulse--;
-            for(let i=0; i<800; i+=40) { ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, 600); ctx.stroke(); }
-            
-            balls.forEach(ball => {
-                ball.trail.forEach((t, i) => { ctx.globalAlpha = i/10; ctx.fillStyle = ball.color; ctx.beginPath(); ctx.arc(t.x, t.y, ball.r*(i/10), 0, Math.PI*2); ctx.fill(); });
-                ctx.globalAlpha = 1; ctx.fillStyle = ball.color; ctx.beginPath(); ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI*2); ctx.fill();
+            balls.forEach(b => {
+                ctx.globalAlpha = b.ghost ? 0.15 : 1.0;
+                ctx.fillStyle = "white"; ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, Math.PI*2); ctx.fill();
             });
 
-            ctx.fillStyle = c1; ctx.fillRect(p1.x, p1.y, 15, p1.h);
-            ctx.fillStyle = c2; ctx.fillRect(p2.x, p2.y, 15, p2.h);
+            ctx.globalAlpha = 1.0;
+            ctx.fillStyle = p1.powerReady ? "#00ffff" : "#444";
+            ctx.fillRect(20, p1.y, 15, p1.h);
+            ctx.fillStyle = p2.powerReady ? "#ffaa00" : "#444";
+            ctx.fillRect(765, p2.y, 15, p2.h);
             
-            notifications.forEach((n, i) => { ctx.globalAlpha = n.opacity; ctx.fillStyle = "white"; ctx.fillText(n.text, n.x, n.y); n.y--; n.opacity -= 0.02; if(n.opacity <= 0) notifications.splice(i,1); });
-            
-            document.getElementById("p1-label").textContent = `${p1Name}: ${score1}`;
-            document.getElementById("p2-label").textContent = `${p2Name}: ${score2}`;
-            ctx.restore(); requestAnimationFrame(loop);
+            // Update UI status
+            document.getElementById("p1-ui").innerHTML = `${p1Name}: ${score1} <span style="color:${p1.powerReady?'#00ffff':'#666'}">${p1.powerReady?'[READY]':'[USED]'}</span>`;
+            document.getElementById("p2-ui").innerHTML = `${p2Name}: ${score2} <span style="color:${p2.powerReady?'#ffaa00':'#666'}">${p2.powerReady?'[READY]':'[USED]'}</span>`;
         }
-        function loop() { move(); draw(); }
         loop();
     </script>
 </body>
