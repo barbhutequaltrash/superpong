@@ -7,56 +7,82 @@
         body {
             background-color: #0f0f0f; color: white; display: flex; flex-direction: column;
             align-items: center; justify-content: center; height: 100vh; margin: 0;
-            font-family: 'Segoe UI', sans-serif; overflow: hidden;
+            font-family: 'Courier New', Courier, monospace; overflow: hidden;
         }
         #ui-top { display: flex; width: 800px; justify-content: space-between; margin-bottom: 10px; font-size: 1.5rem; font-weight: bold; }
         
         #game-container { position: relative; border: 4px solid #333; border-radius: 8px; }
         canvas { background-color: black; display: block; }
         
-        /* Overlays */
+        /* Pixel Home Screen */
         #start-screen {
             position: absolute; top: 0; left: 0; width: 800px; height: 600px;
             background: rgba(0,0,0,0.95); display: flex; flex-direction: column;
             justify-content: center; align-items: center; z-index: 20;
         }
         .menu-card { background: #1a1a1a; padding: 40px; border-radius: 15px; border: 2px solid #4a90e2; text-align: center; }
+        
+        h1 {
+            font-size: 4rem; color: #4a90e2; text-transform: uppercase;
+            text-shadow: 4px 4px 0px #111, 8px 8px 0px #333; margin: 0 0 20px 0;
+        }
+
         input { padding: 12px; margin: 10px; border-radius: 5px; border: 1px solid #444; background: #222; color: white; width: 200px; }
-        button { padding: 12px 30px; background: #4a90e2; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        button { padding: 12px 30px; background: #4a90e2; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; font-family: inherit; }
 
-        /* Game Footer / Leaderboard */
+        /* Footer & Toggles */
         #footer { display: flex; width: 800px; gap: 20px; margin-top: 15px; }
-        .leaderboard { flex: 1; background: #1a1a1a; padding: 15px; border-radius: 8px; border: 1px solid #333; height: 120px; overflow-y: auto; }
-        .controls-hint { flex: 1; background: #1a1a1a; padding: 15px; border-radius: 8px; border: 1px solid #333; display: flex; flex-direction: column; justify-content: center; }
+        .leaderboard { flex: 1; background: #1a1a1a; padding: 15px; border-radius: 8px; border: 1px solid #333; height: 120px; overflow-y: auto; font-family: sans-serif; }
+        .controls-hint { flex: 1; background: #1a1a1a; padding: 15px; border-radius: 8px; border: 1px solid #333; font-family: sans-serif; }
 
-        /* Mid-game Toggle */
         .toggle-box { display: flex; align-items: center; gap: 10px; background: #222; padding: 5px 15px; border-radius: 20px; border: 1px solid #444; }
+        
+        /* Toggle Styling */
         .switch { position: relative; display: inline-block; width: 40px; height: 20px; }
         .switch input { opacity: 0; width: 0; height: 0; }
         .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #555; transition: .4s; border-radius: 20px; }
         input:checked + .slider { background-color: #ff3e3e; }
         .slider:before { position: absolute; content: ""; height: 14px; width: 14px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
         input:checked + .slider:before { transform: translateX(20px); }
+
+        /* Caeden Mode Toggle Image */
+        .caeden-icon {
+            width: 30px; height: 30px; border-radius: 50%; border: 2px solid gold;
+            object-fit: cover; cursor: pointer; filter: grayscale(100%); transition: 0.3s;
+        }
+        #caeden-toggle:checked + .caeden-icon { filter: grayscale(0%) drop-shadow(0 0 5px gold); transform: scale(1.2); }
     </style>
 </head>
 <body>
 
     <div id="ui-top">
         <div id="p1-label">Blue: 0</div>
-        <div class="toggle-box">
-            <span style="font-size: 0.8rem;">CHAOS MODE</span>
-            <label class="switch">
-                <input type="checkbox" id="chaos-toggle">
-                <span class="slider"></span>
-            </label>
+        
+        <div style="display: flex; gap: 15px;">
+            <div class="toggle-box">
+                <span style="font-size: 0.7rem;">CHAOS</span>
+                <label class="switch">
+                    <input type="checkbox" id="chaos-toggle">
+                    <span class="slider"></span>
+                </label>
+            </div>
+
+            <div class="toggle-box">
+                <span style="font-size: 0.7rem;">CAEDEN MODE</span>
+                <label>
+                    <input type="checkbox" id="caeden-toggle" style="display:none">
+                    <img src="YOUR_IMAGE_HERE.jpg" class="caeden-icon" alt="Caeden Mode">
+                </label>
+            </div>
         </div>
+
         <div id="p2-label">Red: 0</div>
     </div>
 
     <div id="game-container">
         <div id="start-screen">
             <div class="menu-card">
-                <h1 style="color: #4a90e2; margin-top:0;">CAEDEN PONG</h1>
+                <h1>CAEDEN PONG</h1>
                 <input type="text" id="p1-input" placeholder="Player 1 Name">
                 <input type="text" id="p2-input" placeholder="Player 2 Name">
                 <br>
@@ -72,9 +98,8 @@
             <div id="score-list" style="font-size: 0.9rem; margin-top: 5px;"></div>
         </div>
         <div class="controls-hint">
-            <div style="font-size: 0.8rem; color: #888;">BLUE: W / S Keys</div>
-            <div style="font-size: 0.8rem; color: #888;">RED: Up / Down Arrows</div>
-            <div style="font-size: 0.8rem; color: #aaa; margin-top:5px;">Tip: Strike the ball while moving for <b>SPIN!</b></div>
+            <div style="font-size: 0.8rem; color: #888;">BLUE: W / S Keys | RED: Up / Down Arrows</div>
+            <div style="font-size: 0.8rem; color: #aaa; margin-top:5px;">Caeden Mode: Curves the ball and spawns faster!</div>
         </div>
     </div>
 
@@ -83,6 +108,9 @@
         const ctx = canvas.getContext("2d");
         
         let gameActive = false;
+        let countdown = 0;
+        let countdownActive = false;
+
         let p1Name = "Blue", p2Name = "Red";
         let score1 = 0, score2 = 0;
         let p1H = 100, p2H = 100;
@@ -94,8 +122,10 @@
         let powerups = [];
         let notifications = [];
         const keys = {};
+        const emojiMap = { 'speed': '⚡', 'size': '📏', 'ghost': '👻', 'gravity': '🌪️', 'caeden': '👑' };
 
-        const emojiMap = { 'speed': '⚡', 'size': '📏', 'ghost': '👻', 'gravity': '🌪️' };
+        // New Mode variables
+        let spawnRate = 5000;
 
         window.addEventListener("keydown", e => keys[e.key] = true);
         window.addEventListener("keyup", e => keys[e.key] = false);
@@ -105,12 +135,40 @@
             p2Name = document.getElementById("p2-input").value || "Red";
             document.getElementById("start-screen").style.display = "none";
             updateLabels();
-            gameActive = true;
-            setInterval(spawnPowerup, 5000);
+            
+            countdown = 3;
+            countdownActive = true;
+            
+            let timer = setInterval(() => {
+                countdown--;
+                if (countdown <= 0) {
+                    clearInterval(timer);
+                    countdownActive = false;
+                    gameActive = true;
+                    chaosSpawner(); // Start the dynamic spawner
+                }
+            }, 1000);
+        }
+
+        // Improved spawner that gets faster
+        function chaosSpawner() {
+            if (!gameActive) return;
+            
+            const isChaos = document.getElementById("chaos-toggle").checked;
+            const isCaeden = document.getElementById("caeden-toggle").checked;
+
+            if (isChaos || isCaeden) {
+                spawnPowerup();
+            }
+
+            if (isCaeden) {
+                spawnRate = Math.max(400, spawnRate - 150); // Gets faster over time!
+            }
+
+            setTimeout(chaosSpawner, spawnRate);
         }
 
         function spawnPowerup() {
-            if(!gameActive || !document.getElementById("chaos-toggle").checked) return;
             const types = Object.keys(emojiMap);
             powerups.push({
                 x: 150 + Math.random() * 500,
@@ -135,8 +193,8 @@
                 ball.alpha = 0.15; 
                 setTimeout(() => ball.alpha = 1, 4000); 
             }
-            if (type === 'gravity') { 
-                ball.dy += (Math.random() - 0.5) * 15; 
+            if (type === 'gravity' || type === 'caeden') { 
+                ball.dy += (Math.random() - 0.5) * 20; 
             }
         }
 
@@ -171,7 +229,6 @@
         function move() {
             if (!gameActive) return;
 
-            // Spin Calculation
             p1.dy = p1.y - p1.lastY; p1.lastY = p1.y;
             p2.dy = p2.y - p2.lastY; p2.lastY = p2.y;
 
@@ -180,23 +237,28 @@
             if (keys['ArrowUp'] && p2.y > 0) p2.y -= 10;
             if (keys['ArrowDown'] && p2.y < 600 - p2H) p2.y += 10;
 
+            // Caeden Mode Curve Logic
+            if (document.getElementById("caeden-toggle").checked) {
+                // Adds a 90% "wiggle" or curve to the ball's path
+                ball.dy += Math.sin(ball.x * 0.01) * 0.9;
+            }
+
             ball.x += ball.dx; ball.y += ball.dy;
 
             if (ball.y < 0 || ball.y > 600) ball.dy *= -1;
 
-            // Paddle Hits
             if (ball.x < p1.x + 15 && ball.y > p1.y && ball.y < p1.y + p1H) {
                 ball.dx = Math.abs(ball.dx); ball.dy += p1.dy * 0.4;
+                ball.x = p1.x + 16; 
             }
             if (ball.x > p2.x - 5 && ball.y > p2.y && ball.y < p2.y + p2H) {
                 ball.dx = -Math.abs(ball.dx); ball.dy += p2.dy * 0.4;
+                ball.x = p2.x - 6;
             }
 
-            // Scoring
             if (ball.x < 0) { score2++; saveToLeaderboard(p2Name, score2); resetBall(); }
             if (ball.x > 800) { score1++; saveToLeaderboard(p1Name, score1); resetBall(); }
 
-            // Powerups
             powerups.forEach((p, i) => {
                 if (Math.hypot(ball.x - p.x, ball.y - p.y) < 25) {
                     applyEffect(p.type, p.x, p.y);
@@ -211,23 +273,19 @@
             ctx.fillStyle = "black";
             ctx.fillRect(0, 0, 800, 600);
 
-            // Center Line
             ctx.strokeStyle = "#1a1a1a";
             ctx.setLineDash([10, 15]);
             ctx.beginPath(); ctx.moveTo(400,0); ctx.lineTo(400,600); ctx.stroke();
 
-            // Paddles
             ctx.fillStyle = "#4a90e2"; ctx.fillRect(p1.x, p1.y, 15, p1H);
             ctx.fillStyle = "#ff3e3e"; ctx.fillRect(p2.x, p2.y, 15, p2H);
 
-            // Powerups (Emojis)
             ctx.font = "30px Arial";
             ctx.textAlign = "center";
             powerups.forEach(p => {
                 ctx.fillText(emojiMap[p.type], p.x, p.y + 10);
             });
 
-            // Notifications
             notifications.forEach((n, i) => {
                 ctx.globalAlpha = n.opacity;
                 ctx.fillStyle = "yellow";
@@ -238,11 +296,17 @@
             });
             ctx.globalAlpha = 1;
 
-            // Ball
             ctx.globalAlpha = ball.alpha;
             ctx.fillStyle = "white";
             ctx.beginPath(); ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI*2); ctx.fill();
             ctx.globalAlpha = 1;
+
+            if (countdownActive) {
+                ctx.fillStyle = "white";
+                ctx.font = "bold 120px 'Courier New'";
+                ctx.textAlign = "center";
+                ctx.fillText(countdown, 400, 320);
+            }
         }
 
         function loop() { move(); draw(); requestAnimationFrame(loop); }
