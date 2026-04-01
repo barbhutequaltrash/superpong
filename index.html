@@ -2,42 +2,41 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Caeden Pong: The Master Edition</title>
+    <title>Caeden Pong: Ultimate Mobile Edition</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <style>
         body {
             background-color: #0f0f0f; color: white; display: flex; flex-direction: column;
             align-items: center; justify-content: center; height: 100vh; margin: 0;
-            font-family: 'Segoe UI', sans-serif; overflow: hidden;
+            font-family: 'Segoe UI', sans-serif; overflow: hidden; touch-action: none;
         }
-        #ui-top { display: flex; width: 800px; justify-content: space-between; margin-bottom: 10px; font-size: 1.1rem; font-weight: bold; }
-        #game-container { position: relative; border: 4px solid #333; border-radius: 8px; }
-        canvas { display: block; background-color: black; }
+        #ui-top { display: flex; width: 100%; max-width: 800px; justify-content: space-between; margin-bottom: 10px; font-size: 1.1rem; font-weight: bold; }
+        #game-container { position: relative; border: 4px solid #333; border-radius: 8px; max-width: 100%; }
+        canvas { display: block; background-color: black; max-width: 100%; height: auto; }
         
-        /* Menus */
         #start-screen, #win-screen {
-            position: absolute; top: 0; left: 0; width: 800px; height: 600px;
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.95); display: flex; flex-direction: column;
             justify-content: center; align-items: center; z-index: 20;
         }
-        .menu-card { background: #1a1a1a; padding: 25px; border-radius: 15px; border: 2px solid #4a90e2; text-align: center; width: 450px; }
-        input, select { padding: 10px; margin: 5px; border-radius: 5px; border: 1px solid #444; background: #222; color: white; width: 80%; }
+        .menu-card { background: #1a1a1a; padding: 20px; border-radius: 15px; border: 2px solid #4a90e2; text-align: center; width: 80%; max-width: 400px; }
+        input, select { padding: 10px; margin: 5px; border-radius: 5px; border: 1px solid #444; background: #222; color: white; width: 90%; }
         button { padding: 12px 30px; background: #4a90e2; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; margin-top: 10px; }
         
-        /* Stats & Meters */
-        .meter-container { width: 120px; height: 8px; background: #333; border-radius: 4px; margin-top: 4px; overflow: hidden; }
+        .meter-container { width: 80px; height: 8px; background: #333; border-radius: 4px; margin-top: 4px; overflow: hidden; }
         .meter-fill { height: 100%; width: 0%; transition: width 0.2s; }
-        #footer { display: flex; width: 800px; gap: 15px; margin-top: 10px; }
-        .box { flex: 1; background: #1a1a1a; padding: 10px; border-radius: 8px; border: 1px solid #333; font-size: 0.8rem; height: 100px; overflow-y: auto; }
+        #footer { display: flex; width: 100%; max-width: 800px; gap: 10px; margin-top: 10px; }
+        .box { flex: 1; background: #1a1a1a; padding: 10px; border-radius: 8px; border: 1px solid #333; font-size: 0.7rem; height: 80px; overflow-y: auto; }
     </style>
 </head>
 <body>
 
     <div id="ui-top">
         <div>
-            <div id="p1-label">Player 1: 0</div>
+            <div id="p1-label">P1: 0</div>
             <div class="meter-container"><div id="p1-meter" class="meter-fill" style="background: #0ff;"></div></div>
         </div>
-        <div style="text-align: center; font-size: 0.8rem; color: #888;">SPACE = SUPER SHOT</div>
+        <div style="text-align: center; font-size: 0.7rem; color: #888;">TAP SIDES TO MOVE<br>DOUBLE TAP FOR SUPER</div>
         <div style="text-align: right;">
             <div id="p2-label">CPU: 0</div>
             <div class="meter-container"><div id="p2-meter" class="meter-fill" style="background: #f0f;"></div></div>
@@ -53,7 +52,6 @@
                 <select id="theme-select">
                     <option value="neon">Neon Nights</option><option value="matrix">Digital Matrix</option>
                     <option value="lava">Lava Pit</option><option value="space">Deep Space</option>
-                    <option value="ice">Frozen Tundra</option><option value="candy">Candy Kingdom</option>
                 </select>
                 <button onclick="initGame()">START MATCH</button>
             </div>
@@ -66,7 +64,7 @@
 
     <div id="footer">
         <div class="box"><strong>🏆 LEADERBOARD</strong><div id="score-list"></div></div>
-        <div class="box"><strong>🎮 CONTROLS</strong><br>P1: W/S (Space for Super)<br>P2: Arrows (Enter for Super)</div>
+        <div class="box"><strong>🎮 CONTROLS</strong><br>PC: W/S & Arrows<br>Mobile: Drag finger</div>
     </div>
 
     <script>
@@ -84,14 +82,36 @@
             neon: { bg: "#0a0a0a", p1: "#0ff", p2: "#f0f", ball: "#fff" },
             matrix: { bg: "#000", p1: "#0f0", p2: "#080", ball: "#0f0" },
             lava: { bg: "#1a0000", p1: "#f40", p2: "#800", ball: "#ff0" },
-            space: { bg: "#00001a", p1: "#fff", p2: "#888", ball: "#fff" },
-            ice: { bg: "#f0f8ff", p1: "#00bfff", p2: "#add8e6", ball: "#1e90ff" },
-            candy: { bg: "#603060", p1: "#ff69b4", p2: "#da70d6", ball: "#fff" }
+            space: { bg: "#00001a", p1: "#fff", p2: "#888", ball: "#fff" }
         };
         let theme = themes.neon;
 
+        // --- INPUT HANDLING (KEYBOARD & TOUCH) ---
         window.addEventListener("keydown", e => keys[e.key] = true);
         window.addEventListener("keyup", e => keys[e.key] = false);
+
+        canvas.addEventListener("touchmove", e => {
+            e.preventDefault();
+            const rect = canvas.getBoundingClientRect();
+            const scaleY = 600 / rect.height;
+            const scaleX = 800 / rect.width;
+            for (let t of e.touches) {
+                let tx = (t.clientX - rect.left) * scaleX;
+                let ty = (t.clientY - rect.top) * scaleY;
+                if (tx < 400) p1.y = ty - p1.h / 2;
+                else if (isPvP) p2.y = ty - p2.h / 2;
+            }
+        }, { passive: false });
+
+        canvas.addEventListener("touchstart", e => {
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = 800 / rect.width;
+            for (let t of e.touches) {
+                let tx = (t.clientX - rect.left) * scaleX;
+                if (tx < 400 && p1.meter >= 100) useSuper(p1);
+                else if (tx >= 400 && isPvP && p2.meter >= 100) useSuper(p2);
+            }
+        });
 
         function playSound(f, t, d) {
             const o = audioCtx.createOscillator(), g = audioCtx.createGain();
@@ -115,25 +135,27 @@
             loop();
         }
 
+        function useSuper(player) {
+            player.meter = 0; ball.dx *= 2.5; shake = 15; playSound(600, 'square', 0.2);
+        }
+
         function move() {
             if (!gameActive) return;
-            // P1 Movement & Super
+
+            // Keyboard support still works alongside touch
             if (keys['w']) p1.vy -= 1.4; else if (keys['s']) p1.vy += 1.4; else p1.vy *= 0.8;
             p1.y = Math.max(0, Math.min(500, p1.y + p1.vy));
-            if (keys[' '] && p1.meter >= 100) { p1.meter = 0; ball.dx *= 2.5; shake = 15; playSound(600, 'square', 0.2); }
+            if (keys[' '] && p1.meter >= 100) useSuper(p1);
 
-            // P2 Movement (AI or PvP)
             if (isPvP) {
                 if (keys['ArrowUp']) p2.vy -= 1.4; else if (keys['ArrowDown']) p2.vy += 1.4; else p2.vy *= 0.8;
-                if (keys['Enter'] && p2.meter >= 100) { p2.meter = 0; ball.dx *= 2.5; shake = 15; playSound(600, 'square', 0.2); }
+                if (keys['Enter'] && p2.meter >= 100) useSuper(p2);
             } else { p2.y += (ball.y - (p2.y + 50)) * 0.12; }
             p2.y = Math.max(0, Math.min(500, p2.y + p2.vy));
 
-            // Ball & Trail
             ball.x += ball.dx; ball.y += ball.dy;
             ball.history.push({x: ball.x, y: ball.y}); if(ball.history.length > 6) ball.history.shift();
 
-            // Bounces
             if (ball.y < 0 || ball.y > 600) { ball.dy *= -1; playSound(150, 'sine', 0.1); }
             if (ball.x < 40 && ball.y > p1.y && ball.y < p1.y + p1.h) {
                 ball.dx = Math.abs(ball.dx) + 0.3; ball.dy += p1.vy * 0.2;
@@ -144,13 +166,11 @@
                 p2.meter = Math.min(100, p2.meter + 15); shake = 5; createExplosion(ball.x, ball.y, theme.p2); playSound(300, 'triangle', 0.1);
             }
 
-            // Powerups
             powerups.forEach((p, i) => {
                 if (Math.hypot(ball.x - p.x, ball.y - p.y) < 30) { ball.dx *= 1.5; powerups.splice(i, 1); playSound(800, 'sine', 0.2); }
                 p.life--; if(p.life <= 0) powerups.splice(i,1);
             });
 
-            // Scoring
             if (ball.x < 0 || ball.x > 800) {
                 ball.x > 400 ? score1++ : score2++;
                 if (score1 >= 10 || score2 >= 10) endGame();
