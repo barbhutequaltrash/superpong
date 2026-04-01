@@ -59,8 +59,9 @@
                 </select>
 
                 <select id="diff-select">
-                    <option value="0.06">Difficulty: Easy</option>
-                    <option value="0.12" selected>Difficulty: Medium</option>
+                    <option value="0.04" selected>Difficulty: Very Easy</option>
+                    <option value="0.08">Difficulty: Easy</option>
+                    <option value="0.12">Difficulty: Medium</option>
                     <option value="0.22">Difficulty: Hard</option>
                 </select>
 
@@ -90,7 +91,7 @@
         const ctx = canvas.getContext("2d");
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
-        let gameActive = false, isPvP = false, shake = 0, aiStrength = 0.12;
+        let gameActive = false, isPvP = false, shake = 0, aiStrength = 0.04;
         let score1 = 0, score2 = 0, p1DisplayName = "P1", p2DisplayName = "CPU";
         let p1 = { y: 250, vy: 0, h: 100, meter: 0 }, p2 = { y: 250, vy: 0, h: 100, meter: 0 };
         let ball = { x: 400, y: 300, r: 8, dx: 5, dy: 5, history: [], color: "white" };
@@ -173,7 +174,11 @@
             if (isPvP) {
                 if (keys['ArrowUp']) p2.vy -= 1.4; else if (keys['ArrowDown']) p2.vy += 1.4; else p2.vy *= 0.8;
                 if (keys['Enter'] && p2.meter >= 100) useSuper(p2);
-            } else { p2.y += (ball.y - (p2.y + 50)) * aiStrength; }
+            } else { 
+                // AI Logic: follow ball but with a slight delay
+                let aiTarget = ball.y - (p2.h / 2);
+                p2.y += (aiTarget - p2.y) * aiStrength; 
+            }
             p2.y = Math.max(0, Math.min(500, p2.y + p2.vy));
 
             ball.x += ball.dx; ball.y += ball.dy;
