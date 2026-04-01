@@ -1,242 +1,222 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <title>Caeden Pong: Master Edition</title>
+    <title>CAEDEN Pong</title>
     <style>
-        body {
-            background-color: #050505; color: white; display: flex; flex-direction: column;
-            align-items: center; justify-content: center; height: 100vh; margin: 0;
-            font-family: 'Courier New', Courier, monospace; overflow: hidden;
+        canvas {
+            border: 1px solid #000;
+            display: block;
+            margin: 0 auto;
         }
-        #ui-top { display: flex; width: 850px; justify-content: space-between; margin-bottom: 10px; font-weight: bold; }
-        #game-container { position: relative; border: 4px solid #333; border-radius: 8px; }
-        canvas { display: block; background: black; }
-        
-        #start-screen {
-            position: absolute; top: 0; left: 0; width: 800px; height: 600px;
-            background: rgba(0,0,0,0.95); display: flex; flex-direction: column;
-            justify-content: center; align-items: center; z-index: 20;
-        }
-        .menu-card { background: #111; padding: 20px; border-radius: 15px; border: 2px solid #4a90e2; text-align: center; width: 550px; }
-        .setup-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 15px 0; background: #1a1a1a; padding: 15px; border-radius: 10px; }
-        .setup-item { display: flex; flex-direction: column; align-items: flex-start; gap: 5px; font-size: 0.7rem; }
-        
-        #leaderboard-modal {
-            display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            background: #1a1a1a; padding: 20px; border: 2px solid #ffca28; border-radius: 10px;
-            z-index: 30; width: 300px; text-align: center; box-shadow: 0 0 50px black;
+        .scoreboard {
+            font-size: 24px;
+            text-align: center;
+            margin-bottom: 20px;
         }
 
-        button { padding: 10px 15px; background: #4a90e2; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; margin: 5px; }
-        .lead-btn { background: #ffca28; color: black; }
-        select { padding: 8px; background: #222; color: white; border: 1px solid #444; border-radius: 5px; width: 100%; font-family: inherit; }
-        .chaos-box { grid-column: span 2; background: #300; padding: 10px; border-radius: 5px; border: 1px solid red; display: flex; align-items: center; justify-content: center; gap: 10px; }
+        .game-over {
+            font-size: 36px;
+            text-align: center;
+            margin-top: 100px;
+        }
     </style>
 </head>
 <body>
-
-    <div id="ui-top">
-        <div id="p1-ui">P1: 0</div>
-        <div id="event-msg" style="color:#00ffff; font-size:0.8rem;">MASTER EDITION</div>
-        <div id="p2-ui">P2: 0</div>
-    </div>
-
-    <div id="game-container">
-        <div id="leaderboard-modal">
-            <h2 style="color:#ffca28">HALL OF FAME</h2>
-            <div id="leaderboard-content"></div>
-            <button onclick="toggleModal('leaderboard-modal', false)">CLOSE</button>
-        </div>
-
-        <div id="start-screen">
-            <div class="menu-card">
-                <h1 style="color:#4a90e2; margin:0;">CAEDEN PONG</h1>
-                <div class="setup-grid">
-                    <div class="setup-item">
-                        <label>PLAYER 1 (W/S)</label>
-                        <select id="p1-select"><option>DAD</option><option>RORY</option><option>CAEDEN</option><option>QUINN</option><option>MOM</option></select>
-                    </div>
-                    <div class="setup-item">
-                        <label>PLAYER 2 (UP/DOWN)</label>
-                        <select id="p2-select"><option>RORY</option><option>DAD</option><option>CAEDEN</option><option>QUINN</option><option>MOM</option></select>
-                    </div>
-                    <div class="setup-item">
-                        <label>ARENA</label>
-                        <select id="arena-select">
-                            <option value="none">CLASSIC</option>
-                            <option value="starfield">STARFIELD</option>
-                            <option value="lava">LAVA LEAK</option>
-                            <option value="matrix">MATRIX VOID</option>
-                        </select>
-                    </div>
-                    <div class="setup-item">
-                        <label>DIFFICULTY</label>
-                        <select id="diff-select">
-                            <option value="easy">EASY</option>
-                            <option value="normal" selected>NORMAL</option>
-                            <option value="hard">HARD</option>
-                        </select>
-                    </div>
-                    <div class="chaos-box">
-                        <input type="checkbox" id="chaos-toggle">
-                        <label style="color:red; font-weight:bold;" for="chaos-toggle">ACTIVATE CHAOS MODE</label>
-                    </div>
-                </div>
-                <button class="lead-btn" onclick="showLeaderboard()">LEADERBOARD</button>
-                <button style="width: 90%; font-size: 1.1rem;" onclick="initGame()">START MATCH</button>
-            </div>
-        </div>
-        <canvas id="pongCanvas" width="800" height="600"></canvas>
-    </div>
-
+    <canvas id="pong" width="800" height="400"></canvas>
     <script>
-        const canvas = document.getElementById("pongCanvas");
-        const ctx = canvas.getContext("2d");
-        let gameActive = false, score1 = 0, score2 = 0, arenaType = "", chaosMode = false, difficulty = "";
-        let p1Name = "", p2Name = "";
-        let p1 = { y: 250, h: 100, dy: 0, powerReady: true, hits: 0 };
-        let p2 = { y: 250, h: 100, dy: 0, powerReady: true, hits: 0 };
-        let balls = [], keys = {}, particles = [], stars = [], bubbles = [], matrixChars = [];
+        // Selecionar o elemento canvas
+        const canvas = document.getElementById("pong");
+        const context = canvas.getContext("2d");
 
-        window.addEventListener("keydown", e => {
-            keys[e.key] = true;
-            if (e.key === "Shift" && p1.powerReady && gameActive) usePower(p1Name, p1, balls[0]);
-            if (e.key === "Enter" && p2.powerReady && gameActive) usePower(p2Name, p2, balls[0]);
-        });
-        window.addEventListener("keyup", e => keys[e.key] = false);
+        // Variáveis para armazenar as informações do jogo
+        let pong = {
+            // Configurações iniciais
+            paddleWidth: 10,
+            paddleHeight: 100,
+            paddleSpeed: 20,
+            ballSpeed: 4,
+            ballRadius: 10,
+            maxScore: 5,
 
-        function toggleModal(id, show) { document.getElementById(id).style.display = show ? 'block' : 'none'; }
+            // Posições iniciais
+            paddle1Y: canvas.height / 2 - 50,
+            paddle2Y: canvas.height / 2 - 50,
+            ballX: canvas.width / 2,
+            ballY: canvas.height / 2,
+            ballDX: 1,
+            ballDY: 1,
 
-        function showLeaderboard() {
-            const wins = JSON.parse(localStorage.getItem('pongWins')) || {};
-            const content = document.getElementById('leaderboard-content');
-            content.innerHTML = "";
-            Object.entries(wins).sort((a,b) => b[1] - a[1]).forEach(([name, count]) => {
-                content.innerHTML += `<div class="lead-row"><span>${name}</span><span>${count} Wins</span></div>`;
-            });
-            toggleModal('leaderboard-modal', true);
-        }
+            // Pontuação inicial
+            player1Score: 0,
+            player2Score: 0,
 
-        function usePower(name, user, ball) {
-            user.powerReady = false;
-            if (name === "DAD") { user.h *= 2; setTimeout(() => user.h /= 2, 3000); }
-            if (name === "CAEDEN") { ball.dx *= 2.2; }
-            if (name === "MOM") { ball.dx *= 0.4; setTimeout(() => ball.dx *= 2.5, 2000); }
-            if (name === "RORY") { ball.ghost = true; setTimeout(() => ball.ghost = false, 1500); }
-            if (name === "QUINN") { ball.y = user.y + user.h/2; }
-        }
+            // Estado de jogo
+            isGameOver: false,
 
-        function initGame() {
-            p1Name = document.getElementById("p1-select").value;
-            p2Name = document.getElementById("p2-select").value;
-            arenaType = document.getElementById("arena-select").value;
-            difficulty = document.getElementById("diff-select").value;
-            chaosMode = document.getElementById("chaos-toggle").checked;
-            
-            // Set Paddle Size based on Difficulty
-            let paddleH = 100;
-            if(difficulty === "easy") paddleH = 150;
-            if(difficulty === "hard") paddleH = 60;
-            p1.h = paddleH; p2.h = paddleH;
-            
-            score1 = 0; score2 = 0; p1.hits = 0; p2.hits = 0;
-            stars = []; bubbles = []; matrixChars = [];
-            if(arenaType === "starfield") for(let i=0; i<50; i++) stars.push({x: Math.random()*800, y: Math.random()*600, s: 1+Math.random()*3});
-            resetBall();
-            document.getElementById("start-screen").style.display = "none";
-            gameActive = true;
-        }
+            // Função para resetar o jogo
+            reset: function () {
+                this.paddle1Y = canvas.height / 2 - this.paddleHeight / 2;
+                this.paddle2Y = canvas.height / 2 - this.paddleHeight / 2;
+                this.ballX = canvas.width / 2;
+                this.ballY = canvas.height / 2;
+                this.ballDX = 1;
+                this.ballDY = 1;
+                this.isGameOver = false;
+                this.ballSpeed = 4;
+                this.paddleSpeed = 8;
+            },
 
-        function resetBall() {
-            let speed = 5;
-            if(difficulty === "easy") speed = 3;
-            if(difficulty === "hard") speed = 8;
-            balls = [{ x: 400, y: 300, dx: speed, dy: 3, r: 8, w: 8, ghost: false, super: false, angle: 0 }];
-            p1.powerReady = true; p2.powerReady = true;
-            if (score1 >= 10 || score2 >= 10) endGame();
-        }
+            // Função para atualizar o estado do jogo
+            update: function () {
+                // Verificar se o jogo está pausado ou terminado
+                if (this.isGameOver) {
+                    return;
+                }
 
-        function endGame() {
-            gameActive = false;
-            const winner = score1 >= 10 ? p1Name : p2Name;
-            let wins = JSON.parse(localStorage.getItem('pongWins')) || {};
-            wins[winner] = (wins[winner] || 0) + 1;
-            localStorage.setItem('pongWins', JSON.stringify(wins));
-            document.getElementById("start-screen").style.display = "flex";
-        }
+                // Verificar colisão com as bordas verticais
+                if (this.paddle1Y < 0) this.paddle1Y = 0;
+                if (this.paddle1Y + this.paddleHeight > canvas.height) this.paddle1Y = canvas.height - this.paddleHeight;
 
-        function loop() {
-            if (gameActive) {
-                if (keys['w'] && p1.y > 0) p1.y -= 7; if (keys['s'] && p1.y < 600-p1.h) p1.y += 7;
-                if (keys['ArrowUp'] && p2.y > 0) p2.y -= 7; if (keys['ArrowDown'] && p2.y < 600-p2.h) p2.y += 7;
+                // Movimento do computador (jogador 2)
+                // O computador segue a bola verticalmente
+                const computerSpeed = 5;
+                if (this.ballY < this.paddle2Y + this.paddleHeight / 2 && this.paddle2Y > 0) {
+                    this.paddle2Y -= computerSpeed;
+                }
+                if (this.ballY > this.paddle2Y + this.paddleHeight / 2 && this.paddle2Y + this.paddleHeight < canvas.height) {
+                    this.paddle2Y += computerSpeed;
+                }
 
-                balls.forEach(ball => {
-                    if (chaosMode) { ball.y += Math.sin(Date.now() / 150) * 8; ball.angle += 0.3; }
-                    ball.x += ball.dx; ball.y += ball.dy;
-                    if (ball.y < 0 || ball.y > 600) ball.dy *= -1;
+                // Verificar colisão com a bola
+                if (this.ballY - this.ballRadius < 0 || this.ballY + this.ballRadius > canvas.height) {
+                    this.ballDY = -this.ballDY;
+                    this.shakeScreen();
+                }
 
-                    // Collision Logic
-                    if (ball.x < 35 && ball.y > p1.y && ball.y < p1.y + p1.h) {
-                        ball.dx = Math.abs(ball.dx) + 0.2;
-                        p1.hits++; ball.w = 3; setTimeout(() => ball.w = 8, 100);
-                        if(p1.hits >= 10) { ball.dx *= 2; ball.super = true; p1.hits = 0; setTimeout(() => ball.super = false, 2000); }
-                    }
-                    if (ball.x > 765 && ball.y > p2.y && ball.y < p2.y + p2.h) {
-                        ball.dx = -Math.abs(ball.dx) - 0.2;
-                        p2.hits++; ball.w = 3; setTimeout(() => ball.w = 8, 100);
-                        if(p2.hits >= 10) { ball.dx *= 2; ball.super = true; p2.hits = 0; setTimeout(() => ball.super = false, 2000); }
-                    }
+                // Verificar colisão com as barras
+                if (
+                    this.ballX - this.ballRadius < this.paddleWidth &&
+                    this.ballY > this.paddle1Y &&
+                    this.ballY < this.paddle1Y + this.paddleHeight
+                ) {
+                    this.ballDX = -this.ballDX;
+                    this.ballDY = (this.ballY - (this.paddle1Y + this.paddleHeight / 2)) / (this.paddleHeight / 2);
+                    this.normalizeBallDirection();
+                    this.increaseBallSpeed();
+                    this.shakeScreen();
+                }
 
-                    // Particles
-                    let pColor = ball.super ? "#ff00ff" : "white";
-                    if (chaosMode) {
-                        let px = ball.x + Math.cos(ball.angle) * 15;
-                        let py = ball.y + Math.sin(ball.angle) * 15;
-                        particles.push({x: px, y: py, life: 15, color: `hsl(${Date.now() % 360}, 100%, 50%)`});
-                    } else {
-                        particles.push({x: ball.x, y: ball.y, life: 12, color: pColor});
-                    }
+                if (
+                    this.ballX + this.ballRadius > canvas.width - this.paddleWidth &&
+                    this.ballY > this.paddle2Y &&
+                    this.ballY < this.paddle2Y + this.paddleHeight
+                ) {
+                    this.ballDX = -this.ballDX;
+                    this.ballDY = (this.ballY - (this.paddle2Y + this.paddleHeight / 2)) / (this.paddleHeight / 2);
+                    this.normalizeBallDirection();
+                    this.increaseBallSpeed();
+                    this.shakeScreen();
+                }
 
-                    if (ball.x < 0) { score2++; p1.hits = 0; p2.hits = 0; resetBall(); }
-                    if (ball.x > 800) { score1++; p1.hits = 0; p2.hits = 0; resetBall(); }
-                });
+                // Verificar pontuação
+                if (this.ballX - this.ballRadius < 0) {
+                    this.player2Score++;
+                    this.reset();
+                }
+
+                if (this.ballX + this.ballRadius > canvas.width) {
+                    this.player1Score++;
+                    this.reset();
+                }
+
+                // Atualizar posição da bola
+                this.ballX += this.ballSpeed * this.ballDX;
+                this.ballY += this.ballSpeed * this.ballDY;
+
+                // Verificar fim de jogo
+                if (this.player1Score === this.maxScore || this.player2Score === this.maxScore) {
+                    this.isGameOver = true;
+                }
+            },
+
+            // Função para normalizar a direção da bola
+            normalizeBallDirection: function () {
+                const speed = Math.sqrt(this.ballDX * this.ballDX + this.ballDY * this.ballDY);
+                this.ballDX /= speed;
+                this.ballDY /= speed;
+            },
+
+            // Função para aumentar a velocidade da bola e da barra do computador
+            increaseBallSpeed: function () {
+                this.ballSpeed += 1;
+                this.paddleSpeed += 0.3;
+            },
+
+            // Função para tremer a tela
+            shakeScreen: function () {
+                canvas.style.transform = "translate(" + (Math.random() * 10 - 5) + "px, " + (Math.random() * 10 - 5) + "px)";
+                setTimeout(function () {
+                    canvas.style.transform = "translate(0, 0)";
+                }, 100);
+            },
+
+            // Função para desenhar os elementos na tela
+            draw: function () {
+                // Limpar a tela
+                context.fillStyle = "#000";
+                context.fillRect(0, 0, canvas.width, canvas.height);
+
+                // Desenhar as barras
+                context.fillStyle = "#fff";
+                context.fillRect(this.paddleWidth, this.paddle1Y, this.paddleWidth, this.paddleHeight);
+                context.fillRect(
+                    canvas.width - this.paddleWidth * 2,
+                    this.paddle2Y,
+                    this.paddleWidth,
+                    this.paddleHeight
+                );
+
+                // Desenhar a bola
+                context.beginPath();
+                context.arc(this.ballX, this.ballY, this.ballRadius, 0, Math.PI * 2);
+                context.fillStyle = "#fff";
+                context.fill();
+
+                // Desenhar a pontuação
+                context.fillStyle = "#fff";
+                context.font = "24px Arial";
+                context.fillText("Player 1: " + this.player1Score, 50, 50);
+                context.fillText("Player 2: " + this.player2Score, canvas.width - 150, 50);
+
+                // Verificar se o jogo acabou
+                if (this.isGameOver) {
+                    context.font = "36px Arial";
+                    context.fillText("Game Over", canvas.width / 2 - 100, canvas.height / 2);
+                }
+            },
+        };
+
+        // Função para controlar as barras
+        function keyDownHandler(event) {
+            if (event.key === "w") {
+                pong.paddle1Y -= pong.paddleSpeed;
             }
-            draw();
-            requestAnimationFrame(loop);
-        }
-
-        function draw() {
-            ctx.fillStyle = "black"; ctx.fillRect(0, 0, 800, 600);
-            
-            // Draw Arena effects (Stars/Bars)
-            if(arenaType === "starfield") {
-                ctx.fillStyle = "white";
-                stars.forEach(s => { ctx.fillRect(s.x, s.y, s.s, s.s); s.x -= s.s; if(s.x < 0) s.x = 800; });
+            if (event.key === "s") {
+                pong.paddle1Y += pong.paddleSpeed;
             }
-
-            // Power Bars UI
-            ctx.fillStyle = "#4a90e2"; ctx.fillRect(20, 45, p1.hits * 8, 4);
-            ctx.fillStyle = "#ff3e3e"; ctx.fillRect(780 - (p2.hits * 8), 45, p2.hits * 8, 4);
-
-            particles.forEach((p, i) => {
-                ctx.fillStyle = p.color; ctx.globalAlpha = p.life / 12;
-                ctx.fillRect(p.x-2, p.y-2, 4, 4);
-                p.life--; if (p.life <= 0) particles.splice(i, 1);
-            });
-
-            ctx.globalAlpha = 1;
-            balls.forEach(b => { 
-                ctx.fillStyle = chaosMode ? `hsl(${Date.now() % 360}, 100%, 70%)` : (b.super ? "#ff00ff" : "white"); 
-                ctx.beginPath(); ctx.ellipse(b.x, b.y, b.w, b.r, 0, 0, Math.PI*2); ctx.fill(); 
-            });
-            ctx.fillStyle = "#4a90e2"; ctx.fillRect(20, p1.y, 15, p1.h);
-            ctx.fillStyle = "#ff3e3e"; ctx.fillRect(765, p2.y, 15, p2.h);
-            
-            document.getElementById("p1-ui").innerHTML = `${p1Name}: ${score1}`;
-            document.getElementById("p2-ui").innerHTML = `${p2Name}: ${score2}`;
         }
-        loop();
+
+        // Função para atualizar o estado do jogo e redesenhar os elementos na tela
+        function updateGame() {
+            pong.update();
+            pong.draw();
+        }
+
+        // Associar o evento de pressionar teclas à função de controle das barras
+        document.addEventListener("keydown", keyDownHandler);
+
+        // Loop do jogo
+        setInterval(updateGame, 10);
     </script>
 </body>
 </html>
