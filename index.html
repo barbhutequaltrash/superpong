@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Caeden Pong: Ultimate Mobile Edition</title>
+    <title>Caeden Pong: Ultimate Master Edition</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <style>
         body {
@@ -19,7 +19,7 @@
             background: rgba(0,0,0,0.95); display: flex; flex-direction: column;
             justify-content: center; align-items: center; z-index: 20;
         }
-        .menu-card { background: #1a1a1a; padding: 20px; border-radius: 15px; border: 2px solid #4a90e2; text-align: center; width: 80%; max-width: 400px; }
+        .menu-card { background: #1a1a1a; padding: 20px; border-radius: 15px; border: 2px solid #4a90e2; text-align: center; width: 85%; max-width: 450px; }
         input, select { padding: 10px; margin: 5px; border-radius: 5px; border: 1px solid #444; background: #222; color: white; width: 90%; }
         button { padding: 12px 30px; background: #4a90e2; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; margin-top: 10px; }
         
@@ -36,7 +36,7 @@
             <div id="p1-label">P1: 0</div>
             <div class="meter-container"><div id="p1-meter" class="meter-fill" style="background: #0ff;"></div></div>
         </div>
-        <div style="text-align: center; font-size: 0.7rem; color: #888;">TAP SIDES TO MOVE<br>DOUBLE TAP FOR SUPER</div>
+        <div style="text-align: center; font-size: 0.7rem; color: #888;">SPACE/ENTER = SUPER<br>DRAG SIDES FOR MOBILE</div>
         <div style="text-align: right;">
             <div id="p2-label">CPU: 0</div>
             <div class="meter-container"><div id="p2-meter" class="meter-fill" style="background: #f0f;"></div></div>
@@ -47,12 +47,30 @@
         <div id="start-screen">
             <div class="menu-card">
                 <h1 style="color: #4a90e2; margin-top:0;">CAEDEN PONG</h1>
-                <input type="text" id="p1-name" placeholder="Enter Name">
-                <select id="mode-select"><option value="pvc">vs Smart AI</option><option value="pvp">vs Local Friend</option></select>
-                <select id="theme-select">
-                    <option value="neon">Neon Nights</option><option value="matrix">Digital Matrix</option>
-                    <option value="lava">Lava Pit</option><option value="space">Deep Space</option>
+                
+                <div id="name-inputs">
+                    <input type="text" id="p1-name" placeholder="Player 1 Name">
+                    <input type="text" id="p2-name" placeholder="Player 2 Name" style="display:none;">
+                </div>
+
+                <select id="mode-select" onchange="toggleInputs()">
+                    <option value="pvc">vs Computer</option>
+                    <option value="pvp">vs Local Friend</option>
                 </select>
+
+                <select id="diff-select">
+                    <option value="0.06">Difficulty: Easy</option>
+                    <option value="0.12" selected>Difficulty: Medium</option>
+                    <option value="0.22">Difficulty: Hard</option>
+                </select>
+
+                <select id="theme-select">
+                    <option value="neon">Neon Nights</option>
+                    <option value="matrix">Digital Matrix</option>
+                    <option value="lava">Lava Pit</option>
+                    <option value="space">Deep Space</option>
+                </select>
+
                 <button onclick="initGame()">START MATCH</button>
             </div>
         </div>
@@ -64,7 +82,7 @@
 
     <div id="footer">
         <div class="box"><strong>🏆 LEADERBOARD</strong><div id="score-list"></div></div>
-        <div class="box"><strong>🎮 CONTROLS</strong><br>PC: W/S & Arrows<br>Mobile: Drag finger</div>
+        <div class="box"><strong>🎮 CONTROLS</strong><br>P1: W/S | P2: Arrows<br>Super: Space/Enter</div>
     </div>
 
     <script>
@@ -72,8 +90,8 @@
         const ctx = canvas.getContext("2d");
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
-        let gameActive = false, isPvP = false, shake = 0;
-        let score1 = 0, score2 = 0, p1Name = "P1";
+        let gameActive = false, isPvP = false, shake = 0, aiStrength = 0.12;
+        let score1 = 0, score2 = 0, p1DisplayName = "P1", p2DisplayName = "CPU";
         let p1 = { y: 250, vy: 0, h: 100, meter: 0 }, p2 = { y: 250, vy: 0, h: 100, meter: 0 };
         let ball = { x: 400, y: 300, r: 8, dx: 5, dy: 5, history: [], color: "white" };
         let particles = [], powerups = [], bgElements = [], keys = {};
@@ -86,7 +104,12 @@
         };
         let theme = themes.neon;
 
-        // --- INPUT HANDLING (KEYBOARD & TOUCH) ---
+        function toggleInputs() {
+            const mode = document.getElementById("mode-select").value;
+            document.getElementById("p2-name").style.display = (mode === "pvp") ? "inline-block" : "none";
+            document.getElementById("diff-select").style.display = (mode === "pvc") ? "inline-block" : "none";
+        }
+
         window.addEventListener("keydown", e => keys[e.key] = true);
         window.addEventListener("keyup", e => keys[e.key] = false);
 
@@ -125,8 +148,10 @@
         }
 
         function initGame() {
-            p1Name = document.getElementById("p1-name").value || "Player 1";
+            p1DisplayName = document.getElementById("p1-name").value || "Player 1";
             isPvP = document.getElementById("mode-select").value === "pvp";
+            p2DisplayName = isPvP ? (document.getElementById("p2-name").value || "Player 2") : "CPU";
+            aiStrength = parseFloat(document.getElementById("diff-select").value);
             theme = themes[document.getElementById("theme-select").value];
             document.getElementById("start-screen").style.display = "none";
             for(let i=0; i<25; i++) bgElements.push({x: Math.random()*800, y: Math.random()*600, s: Math.random()*2});
@@ -141,8 +166,6 @@
 
         function move() {
             if (!gameActive) return;
-
-            // Keyboard support still works alongside touch
             if (keys['w']) p1.vy -= 1.4; else if (keys['s']) p1.vy += 1.4; else p1.vy *= 0.8;
             p1.y = Math.max(0, Math.min(500, p1.y + p1.vy));
             if (keys[' '] && p1.meter >= 100) useSuper(p1);
@@ -150,7 +173,7 @@
             if (isPvP) {
                 if (keys['ArrowUp']) p2.vy -= 1.4; else if (keys['ArrowDown']) p2.vy += 1.4; else p2.vy *= 0.8;
                 if (keys['Enter'] && p2.meter >= 100) useSuper(p2);
-            } else { p2.y += (ball.y - (p2.y + 50)) * 0.12; }
+            } else { p2.y += (ball.y - (p2.y + 50)) * aiStrength; }
             p2.y = Math.max(0, Math.min(500, p2.y + p2.vy));
 
             ball.x += ball.dx; ball.y += ball.dy;
@@ -173,10 +196,8 @@
 
             if (ball.x < 0 || ball.x > 800) {
                 ball.x > 400 ? score1++ : score2++;
-                if (score1 >= 10 || score2 >= 10) endGame();
-                else resetBall();
+                if (score1 >= 10 || score2 >= 10) endGame(); else resetBall();
             }
-
             particles.forEach((p, i) => { p.x += p.dx; p.y += p.dy; p.life--; if(p.life <= 0) particles.splice(i,1); });
             updateUI();
         }
@@ -187,15 +208,15 @@
         }
 
         function updateUI() {
-            document.getElementById("p1-label").textContent = p1Name + ": " + score1;
-            document.getElementById("p2-label").textContent = (isPvP ? "P2: " : "CPU: ") + score2;
+            document.getElementById("p1-label").textContent = p1DisplayName + ": " + score1;
+            document.getElementById("p2-label").textContent = p2DisplayName + ": " + score2;
             document.getElementById("p1-meter").style.width = p1.meter + "%";
             document.getElementById("p2-meter").style.width = p2.meter + "%";
         }
 
         function endGame() {
             gameActive = false; document.getElementById("win-screen").style.display = "flex";
-            const winner = score1 >= 10 ? p1Name : "CPU/P2";
+            const winner = score1 >= 10 ? p1DisplayName : p2DisplayName;
             document.getElementById("winner-text").textContent = winner + " WINS!";
             let history = JSON.parse(localStorage.getItem("pongScores") || "[]");
             history.push({ name: winner, score: Math.max(score1, score2), date: new Date().toLocaleDateString() });
