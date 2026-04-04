@@ -36,7 +36,7 @@
             <div id="p1-label">P1: 0</div>
             <div class="meter-container"><div id="p1-meter" class="meter-fill" style="background: #0ff;"></div></div>
         </div>
-        <div style="text-align: center; font-size: 0.7rem; color: #888;">SPACE/ENTER = SUPER<br>DRAG SIDES FOR MOBILE</div>
+        <div style="text-align: center; font-size: 0.7rem; color: #888;">SPACE/ENTER = SUPER<br>W/S or ARROWS</div>
         <div style="text-align: right;">
             <div id="p2-label">CPU: 0</div>
             <div class="meter-container"><div id="p2-meter" class="meter-fill" style="background: #f0f;"></div></div>
@@ -47,31 +47,23 @@
         <div id="start-screen">
             <div class="menu-card">
                 <h1 style="color: #4a90e2; margin-top:0;">CAEDEN PONG</h1>
-                
-                <div id="name-inputs">
-                    <input type="text" id="p1-name" placeholder="Player 1 Name">
-                    <input type="text" id="p2-name" placeholder="Player 2 Name" style="display:none;">
-                </div>
-
+                <input type="text" id="p1-name" placeholder="Player 1 Name">
+                <input type="text" id="p2-name" placeholder="Player 2 Name" style="display:none;">
                 <select id="mode-select" onchange="toggleInputs()">
                     <option value="pvc">vs Computer</option>
                     <option value="pvp">vs Local Friend</option>
                 </select>
-
                 <select id="diff-select">
-                    <option value="0.04" selected>Difficulty: Very Easy</option>
-                    <option value="0.08">Difficulty: Easy</option>
-                    <option value="0.12">Difficulty: Medium</option>
-                    <option value="0.22">Difficulty: Hard</option>
+                    <option value="0.04" selected>Difficulty: Easy</option>
+                    <option value="0.08">Difficulty: Medium</option>
+                    <option value="0.15">Difficulty: Hard</option>
                 </select>
-
                 <select id="theme-select">
                     <option value="neon">Neon Nights</option>
                     <option value="matrix">Digital Matrix</option>
                     <option value="lava">Lava Pit</option>
                     <option value="space">Deep Space</option>
                 </select>
-
                 <button onclick="initGame()">START MATCH</button>
             </div>
         </div>
@@ -94,7 +86,7 @@
         let gameActive = false, isPvP = false, shake = 0, aiStrength = 0.04;
         let score1 = 0, score2 = 0, p1DisplayName = "P1", p2DisplayName = "CPU";
         let p1 = { y: 250, vy: 0, h: 100, meter: 0 }, p2 = { y: 250, vy: 0, h: 100, meter: 0 };
-        let ball = { x: 400, y: 300, r: 8, dx: 5, dy: 5, history: [], color: "white" };
+        let ball = { x: 400, y: 300, r: 8, dx: 5, dy: 5, history: [], color: "white", alpha: 1 };
         let particles = [], powerups = [], bgElements = [], keys = {};
 
         const themes = {
@@ -114,29 +106,6 @@
         window.addEventListener("keydown", e => keys[e.key] = true);
         window.addEventListener("keyup", e => keys[e.key] = false);
 
-        canvas.addEventListener("touchmove", e => {
-            e.preventDefault();
-            const rect = canvas.getBoundingClientRect();
-            const scaleY = 600 / rect.height;
-            const scaleX = 800 / rect.width;
-            for (let t of e.touches) {
-                let tx = (t.clientX - rect.left) * scaleX;
-                let ty = (t.clientY - rect.top) * scaleY;
-                if (tx < 400) p1.y = ty - p1.h / 2;
-                else if (isPvP) p2.y = ty - p2.h / 2;
-            }
-        }, { passive: false });
-
-        canvas.addEventListener("touchstart", e => {
-            const rect = canvas.getBoundingClientRect();
-            const scaleX = 800 / rect.width;
-            for (let t of e.touches) {
-                let tx = (t.clientX - rect.left) * scaleX;
-                if (tx < 400 && p1.meter >= 100) useSuper(p1);
-                else if (tx >= 400 && isPvP && p2.meter >= 100) useSuper(p2);
-            }
-        });
-
         function playSound(f, t, d) {
             const o = audioCtx.createOscillator(), g = audioCtx.createGain();
             o.type = t; o.frequency.setValueAtTime(f, audioCtx.currentTime);
@@ -145,7 +114,7 @@
         }
 
         function createExplosion(x, y, color) {
-            for(let i=0; i<12; i++) particles.push({ x, y, dx: (Math.random()-0.5)*12, dy: (Math.random()-0.5)*12, life: 30, color });
+            for(let i=0; i<15; i++) particles.push({ x, y, dx: (Math.random()-0.5)*15, dy: (Math.random()-0.5)*15, life: 30, color });
         }
 
         function initGame() {
@@ -157,50 +126,99 @@
             document.getElementById("start-screen").style.display = "none";
             for(let i=0; i<25; i++) bgElements.push({x: Math.random()*800, y: Math.random()*600, s: Math.random()*2});
             gameActive = true;
-            setInterval(() => { if(gameActive) powerups.push({x: 200+Math.random()*400, y: 100+Math.random()*400, type: '⚡', life: 300})}, 7000);
+            
+            // Spawn random powerups
+            setInterval(() => { 
+                if(gameActive) {
+                    const types = ['⚡', '📏', '👻'];
+                    powerups.push({
+                        x: 200+Math.random()*400, 
+                        y: 100+Math.random()*400, 
+                        type: types[Math.floor(Math.random()*types.length)], 
+                        life: 400
+                    });
+                }
+            }, 6000);
+            
             loop();
         }
 
         function useSuper(player) {
-            player.meter = 0; ball.dx *= 2.5; shake = 15; playSound(600, 'square', 0.2);
+            player.meter = 0; 
+            ball.dx *= 2.2; 
+            shake = 25; 
+            playSound(600, 'square', 0.2);
+            createExplosion(ball.x, ball.y, "gold");
         }
 
         function move() {
             if (!gameActive) return;
-            if (keys['w']) p1.vy -= 1.4; else if (keys['s']) p1.vy += 1.4; else p1.vy *= 0.8;
-            p1.y = Math.max(0, Math.min(500, p1.y + p1.vy));
+
+            // P1 Movement
+            if (keys['w']) p1.vy -= 1.6; else if (keys['s']) p1.vy += 1.6; else p1.vy *= 0.8;
+            p1.y = Math.max(0, Math.min(600 - p1.h, p1.y + p1.vy));
             if (keys[' '] && p1.meter >= 100) useSuper(p1);
 
+            // P2 Movement
             if (isPvP) {
-                if (keys['ArrowUp']) p2.vy -= 1.4; else if (keys['ArrowDown']) p2.vy += 1.4; else p2.vy *= 0.8;
+                if (keys['ArrowUp']) p2.vy -= 1.6; else if (keys['ArrowDown']) p2.vy += 1.6; else p2.vy *= 0.8;
                 if (keys['Enter'] && p2.meter >= 100) useSuper(p2);
             } else { 
-                // AI Logic: follow ball but with a slight delay
                 let aiTarget = ball.y - (p2.h / 2);
                 p2.y += (aiTarget - p2.y) * aiStrength; 
             }
-            p2.y = Math.max(0, Math.min(500, p2.y + p2.vy));
+            p2.y = Math.max(0, Math.min(600 - p2.h, p2.y + p2.vy));
 
             ball.x += ball.dx; ball.y += ball.dy;
-            ball.history.push({x: ball.x, y: ball.y}); if(ball.history.length > 6) ball.history.shift();
+            ball.history.push({x: ball.x, y: ball.y}); if(ball.history.length > 8) ball.history.shift();
 
-            if (ball.y < 0 || ball.y > 600) { ball.dy *= -1; playSound(150, 'sine', 0.1); }
-            if (ball.x < 40 && ball.y > p1.y && ball.y < p1.y + p1.h) {
-                ball.dx = Math.abs(ball.dx) + 0.3; ball.dy += p1.vy * 0.2;
-                p1.meter = Math.min(100, p1.meter + 15); shake = 5; createExplosion(ball.x, ball.y, theme.p1); playSound(300, 'triangle', 0.1);
-            }
-            if (ball.x > 745 && ball.y > p2.y && ball.y < p2.y + p2.h) {
-                ball.dx = -Math.abs(ball.dx) - 0.3; ball.dy += p2.vy * 0.2;
-                p2.meter = Math.min(100, p2.meter + 15); shake = 5; createExplosion(ball.x, ball.y, theme.p2); playSound(300, 'triangle', 0.1);
+            // Wall Bounce
+            if (ball.y < 0 || ball.y > 600) { 
+                ball.dy *= -1; 
+                shake = 3;
+                playSound(150, 'sine', 0.1); 
             }
 
+            // Paddle 1 Collision + "English" Physics
+            if (ball.x < 35 && ball.y > p1.y && ball.y < p1.y + p1.h) {
+                let relativeIntersectY = (p1.y + (p1.h / 2)) - ball.y;
+                let normalizedIntersectY = relativeIntersectY / (p1.h / 2);
+                ball.dy = -normalizedIntersectY * 7; // Aim based on hit location
+                ball.dx = Math.abs(ball.dx) + 0.3;
+                p1.meter = Math.min(100, p1.meter + 15); 
+                shake = 8; 
+                createExplosion(ball.x, ball.y, theme.p1); 
+                playSound(300, 'triangle', 0.1);
+            }
+
+            // Paddle 2 Collision + "English" Physics
+            if (ball.x > 765 && ball.y > p2.y && ball.y < p2.y + p2.h) {
+                let relativeIntersectY = (p2.y + (p2.h / 2)) - ball.y;
+                let normalizedIntersectY = relativeIntersectY / (p2.h / 2);
+                ball.dy = -normalizedIntersectY * 7; 
+                ball.dx = -Math.abs(ball.dx) - 0.3;
+                p2.meter = Math.min(100, p2.meter + 15); 
+                shake = 8; 
+                createExplosion(ball.x, ball.y, theme.p2); 
+                playSound(300, 'triangle', 0.1);
+            }
+
+            // Powerup Logic
             powerups.forEach((p, i) => {
-                if (Math.hypot(ball.x - p.x, ball.y - p.y) < 30) { ball.dx *= 1.5; powerups.splice(i, 1); playSound(800, 'sine', 0.2); }
+                if (Math.hypot(ball.x - p.x, ball.y - p.y) < 30) { 
+                    if(p.type === '⚡') ball.dx *= 1.4;
+                    if(p.type === '📏') { p1.h = 160; p2.h = 160; setTimeout(() => {p1.h=100; p2.h=100}, 5000); }
+                    if(p.type === '👻') { ball.alpha = 0.3; setTimeout(() => ball.alpha = 1, 3000); }
+                    powerups.splice(i, 1); 
+                    playSound(800, 'sine', 0.2); 
+                }
                 p.life--; if(p.life <= 0) powerups.splice(i,1);
             });
 
+            // Scoring
             if (ball.x < 0 || ball.x > 800) {
                 ball.x > 400 ? score1++ : score2++;
+                shake = 20;
                 if (score1 >= 10 || score2 >= 10) endGame(); else resetBall();
             }
             particles.forEach((p, i) => { p.x += p.dx; p.y += p.dy; p.life--; if(p.life <= 0) particles.splice(i,1); });
@@ -208,8 +226,12 @@
         }
 
         function resetBall() {
-            ball.x = 400; ball.y = 300; ball.dx = 5 * (Math.random() > 0.5 ? 1 : -1); ball.dy = (Math.random()-0.5)*8;
-            ball.history = []; playSound(100, 'sawtooth', 0.3);
+            ball.x = 400; ball.y = 300; 
+            ball.dx = 5 * (Math.random() > 0.5 ? 1 : -1); 
+            ball.dy = (Math.random()-0.5)*8;
+            ball.alpha = 1;
+            ball.history = []; 
+            playSound(100, 'sawtooth', 0.3);
         }
 
         function updateUI() {
@@ -224,7 +246,7 @@
             const winner = score1 >= 10 ? p1DisplayName : p2DisplayName;
             document.getElementById("winner-text").textContent = winner + " WINS!";
             let history = JSON.parse(localStorage.getItem("pongScores") || "[]");
-            history.push({ name: winner, score: Math.max(score1, score2), date: new Date().toLocaleDateString() });
+            history.push({ name: winner, score: Math.max(score1, score2) });
             localStorage.setItem("pongScores", JSON.stringify(history.sort((a,b)=>b.score-a.score).slice(0,5)));
             showLeaderboard();
         }
@@ -236,14 +258,30 @@
 
         function draw() {
             ctx.save();
-            if (shake > 0) { ctx.translate((Math.random()-0.5)*shake, (Math.random()-0.5)*shake); shake--; }
+            if (shake > 0) { ctx.translate((Math.random()-0.5)*shake, (Math.random()-0.5)*shake); shake *= 0.9; }
+            
+            // Background
             ctx.fillStyle = theme.bg; ctx.fillRect(0, 0, 800, 600);
-            bgElements.forEach(b => { ctx.fillStyle = "rgba(255,255,255,0.2)"; ctx.fillRect(b.x, b.y, b.s, b.s); b.y = (b.y + 0.5) % 600; });
-            ball.history.forEach((p, i) => { ctx.globalAlpha = i / 10; ctx.fillStyle = theme.ball; ctx.beginPath(); ctx.arc(p.x, p.y, ball.r, 0, Math.PI*2); ctx.fill(); });
-            ctx.globalAlpha = 1; ctx.fillStyle = theme.p1; ctx.fillRect(20, p1.y, 15, p1.h);
+            bgElements.forEach(b => { ctx.fillStyle = "rgba(255,255,255,0.15)"; ctx.fillRect(b.x, b.y, b.s, b.s); b.y = (b.y + 0.4) % 600; });
+            
+            // Ball Trail
+            ball.history.forEach((p, i) => { 
+                ctx.globalAlpha = (i / 10) * ball.alpha; 
+                ctx.fillStyle = theme.ball; ctx.beginPath(); ctx.arc(p.x, p.y, ball.r - (8-i), 0, Math.PI*2); ctx.fill(); 
+            });
+
+            // Paddles & Ball
+            ctx.globalAlpha = 1; 
+            ctx.fillStyle = theme.p1; ctx.fillRect(20, p1.y, 15, p1.h);
             ctx.fillStyle = theme.p2; ctx.fillRect(765, p2.y, 15, p2.h);
+            
+            ctx.globalAlpha = ball.alpha;
             ctx.fillStyle = theme.ball; ctx.beginPath(); ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI*2); ctx.fill();
-            powerups.forEach(p => { ctx.font = "20px Arial"; ctx.fillText(p.type, p.x, p.y); });
+            
+            // Powerups
+            powerups.forEach(p => { ctx.font = "24px Arial"; ctx.fillText(p.type, p.x, p.y); });
+            
+            // Particles
             particles.forEach(p => { ctx.fillStyle = p.color; ctx.globalAlpha = p.life/30; ctx.fillRect(p.x, p.y, 3, 3); });
             ctx.restore();
         }
