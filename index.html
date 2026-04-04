@@ -27,8 +27,6 @@
         .meter-fill { height: 100%; width: 0%; transition: width 0.2s; }
         #footer { display: flex; width: 100%; max-width: 800px; gap: 10px; margin-top: 10px; }
         .box { flex: 1; background: #1a1a1a; padding: 10px; border-radius: 8px; border: 1px solid #333; font-size: 0.7rem; height: 80px; overflow-y: auto; }
-        
-        /* Added style for the new toggle */
         .toggle-container { margin: 10px 0; font-size: 0.9rem; color: #4a90e2; }
     </style>
 </head>
@@ -92,11 +90,11 @@
         let gameActive = false, isPvP = false, shake = 0, aiStrength = 0.04;
         let score1 = 0, score2 = 0, p1DisplayName = "P1", p2DisplayName = "CPU";
         let p1 = { y: 250, vy: 0, h: 100, meter: 0 }, p2 = { y: 250, vy: 0, h: 100, meter: 0 };
-        let ball = { x: 400, y: 300, r: 8, dx: 5, dy: 5, history: [], color: "white", alpha: 1 };
+        let ball = { x: 400, y: 300, r: 8, dx: 5, dy: 5, history: [], color: "white", alpha: 1, scaleX: 1, scaleY: 1 };
         let particles = [], powerups = [], bgElements = [], keys = {};
         
-        // Added variable for helicopter rotation
         let paddleRotation = 0;
+        let flashOpacity = 0;
 
         const themes = {
             neon: { bg: "#0a0a0a", p1: "#0ff", p2: "#f0f", ball: "#fff" },
@@ -155,6 +153,7 @@
             player.meter = 0; 
             ball.dx *= 2.2; 
             shake = 25; 
+            flashOpacity = 0.5; // Trigger Flash
             playSound(600, 'square', 0.2);
             createExplosion(ball.x, ball.y, "gold");
         }
@@ -178,30 +177,41 @@
             ball.x += ball.dx; ball.y += ball.dy;
             ball.history.push({x: ball.x, y: ball.y}); if(ball.history.length > 8) ball.history.shift();
 
+            // Pinch Recovery
+            ball.scaleX += (1 - ball.scaleX) * 0.2;
+            ball.scaleY += (1 - ball.scaleY) * 0.2;
+
             if (ball.y < 0 || ball.y > 600) { 
                 ball.dy *= -1; 
                 shake = 3;
+                ball.scaleY = 0.5; ball.scaleX = 1.5; // Pinch
                 playSound(150, 'sine', 0.1); 
             }
 
+            const isHelicopter = document.getElementById("helicopter-toggle").checked;
+
+            // P1 Collision
             if (ball.x < 35 && ball.y > p1.y && ball.y < p1.y + p1.h) {
                 let relativeIntersectY = (p1.y + (p1.h / 2)) - ball.y;
                 let normalizedIntersectY = relativeIntersectY / (p1.h / 2);
                 ball.dy = -normalizedIntersectY * 7; 
+                if (isHelicopter) ball.dy += Math.sin(paddleRotation) * 10; // Heli Physics
                 ball.dx = Math.abs(ball.dx) + 0.3;
                 p1.meter = Math.min(100, p1.meter + 15); 
-                shake = 8; 
+                shake = 8; ball.scaleX = 0.5; ball.scaleY = 1.5; 
                 createExplosion(ball.x, ball.y, theme.p1); 
                 playSound(300, 'triangle', 0.1);
             }
 
+            // P2 Collision
             if (ball.x > 765 && ball.y > p2.y && ball.y < p2.y + p2.h) {
                 let relativeIntersectY = (p2.y + (p2.h / 2)) - ball.y;
                 let normalizedIntersectY = relativeIntersectY / (p2.h / 2);
                 ball.dy = -normalizedIntersectY * 7; 
+                if (isHelicopter) ball.dy += Math.sin(paddleRotation) * 10; // Heli Physics
                 ball.dx = -Math.abs(ball.dx) - 0.3;
                 p2.meter = Math.min(100, p2.meter + 15); 
-                shake = 8; 
+                shake = 8; ball.scaleX = 0.5; ball.scaleY = 1.5;
                 createExplosion(ball.x, ball.y, theme.p2); 
                 playSound(300, 'triangle', 0.1);
             }
@@ -230,7 +240,7 @@
             ball.x = 400; ball.y = 300; 
             ball.dx = 5 * (Math.random() > 0.5 ? 1 : -1); 
             ball.dy = (Math.random()-0.5)*8;
-            ball.alpha = 1;
+            ball.alpha = 1; ball.scaleX = 1; ball.scaleY = 1;
             ball.history = []; 
             playSound(100, 'sawtooth', 0.3);
         }
@@ -269,12 +279,11 @@
                 ctx.fillStyle = theme.ball; ctx.beginPath(); ctx.arc(p.x, p.y, ball.r - (8-i), 0, Math.PI*2); ctx.fill(); 
             });
 
-            // Drawing Logic with Caeden Helicopter Mode
             ctx.globalAlpha = 1; 
             const isHelicopter = document.getElementById("helicopter-toggle").checked;
             if (isHelicopter) paddleRotation += 0.15;
 
-            // P1 Draw
+            // P1
             ctx.save();
             ctx.translate(20 + 7.5, p1.y + p1.h / 2);
             if (isHelicopter) ctx.rotate(paddleRotation);
@@ -282,7 +291,7 @@
             ctx.fillRect(-7.5, -p1.h / 2, 15, p1.h);
             ctx.restore();
 
-            // P2 Draw
+            // P2
             ctx.save();
             ctx.translate(765 + 7.5, p2.y + p2.h / 2);
             if (isHelicopter) ctx.rotate(paddleRotation);
@@ -290,12 +299,24 @@
             ctx.fillRect(-7.5, -p2.h / 2, 15, p2.h);
             ctx.restore();
             
+            // Draw Ball with Pinch Scale
+            ctx.save();
+            ctx.translate(ball.x, ball.y);
+            ctx.scale(ball.scaleX, ball.scaleY);
             ctx.globalAlpha = ball.alpha;
-            ctx.fillStyle = theme.ball; ctx.beginPath(); ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = theme.ball; ctx.beginPath(); ctx.arc(0, 0, ball.r, 0, Math.PI*2); ctx.fill();
+            ctx.restore();
             
             powerups.forEach(p => { ctx.font = "24px Arial"; ctx.fillText(p.type, p.x, p.y); });
-            
             particles.forEach(p => { ctx.fillStyle = p.color; ctx.globalAlpha = p.life/30; ctx.fillRect(p.x, p.y, 3, 3); });
+            
+            // Draw Super Flash
+            if (flashOpacity > 0) {
+                ctx.fillStyle = `rgba(255, 255, 255, ${flashOpacity})`;
+                ctx.fillRect(0, 0, 800, 600);
+                flashOpacity -= 0.05;
+            }
+            
             ctx.restore();
         }
 
