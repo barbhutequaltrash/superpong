@@ -1,261 +1,476 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+
+<meta charset="UTF-8">
+
+<title>Caeden Pong: Ultimate CAEDEN Edition</title>
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+<style>
+
+body {
+
+background-color: #0f0f0f; color: white; display: flex; flex-direction: column;
+
+align-items: center; justify-content: center; height: 100vh; margin: 0;
+
+font-family: 'Segoe UI', sans-serif; overflow: hidden; touch-action: none;
+
+}
+
+#ui-top { display: flex; width: 100%; max-width: 800px; justify-content: space-between; margin-bottom: 10px; font-size: 1.1rem; font-weight: bold; }
+
+#game-container { position: relative; border: 4px solid #333; border-radius: 8px; max-width: 100%; }
+
+canvas { display: block; background-color: black; max-width: 100%; height: auto; }
+
+
+#start-screen, #win-screen {
+
+position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+
+background: rgba(0,0,0,0.95); display: flex; flex-direction: column;
+
+justify-content: center; align-items: center; z-index: 20;
+
+}
+
+.menu-card { background: #1a1a1a; padding: 20px; border-radius: 15px; border: 2px solid #4a90e2; text-align: center; width: 85%; max-width: 450px; }
+
+input, select { padding: 10px; margin: 5px; border-radius: 5px; border: 1px solid #444; background: #222; color: white; width: 90%; }
+
+button { padding: 12px 30px; background: #4a90e2; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; margin-top: 10px; }
+
+
+.meter-container { width: 80px; height: 8px; background: #333; border-radius: 4px; margin-top: 4px; overflow: hidden; }
+
+.meter-fill { height: 100%; width: 0%; transition: width 0.2s; }
+
+#footer { display: flex; width: 100%; max-width: 800px; gap: 10px; margin-top: 10px; }
+
+.box { flex: 1; background: #1a1a1a; padding: 10px; border-radius: 8px; border: 1px solid #333; font-size: 0.7rem; height: 80px; overflow-y: auto; }
+
+.toggle-container { margin: 10px 0; font-size: 0.9rem; color: #4a90e2; }
+
+</style>
+
+</head>
+
+<body>
+
+
+
+<div id="ui-top">
+
+<div>
+
+<div id="p1-label">P1: 0</div>
+
+<div class="meter-container"><div id="p1-meter" class="meter-fill" style="background: #0ff;"></div></div>
+
+</div>
+
+<div style="text-align: center; font-size: 0.7rem; color: #888;">SPACE/ENTER = SUPER<br>W/S or ARROWS</div>
+
+<div style="text-align: right;">
+
+<div id="p2-label">CPU: 0</div>
+
+<div class="meter-container"><div id="p2-meter" class="meter-fill" style="background: #f0f;"></div></div>
+
+</div>
+
+</div>
+
+
+
+<div id="game-container">
+
+<div id="start-screen">
+
+<div class="menu-card">
+
+<h1 style="color: #4a90e2; margin-top:0;">CAEDEN PONG</h1>
+
+<input type="text" id="p1-name" placeholder="Player 1 Name">
+
+<input type="text" id="p2-name" placeholder="Player 2 Name" style="display:none;">
+
+<select id="mode-select" onchange="toggleInputs()">
+
+<option value="pvc">vs Caedens minons</option>
+
+<option value="pvp">vs Local Friend</option>
+
+</select>
+
+<select id="diff-select">
+
+<option value="0.04" selected>Difficulty: Easy</option>
+
+<option value="0.08">Difficulty: Medium</option>
+
+<option value="0.15">Difficulty: Hard</option>
+
+</select>
+
+<select id="theme-select">
+
+<option value="neon">Neon Nights</option>
+
+<option value="matrix">Digital Matrix</option>
+
+<option value="lava">Lava Pit</option>
+
+<option value="space">Deep Space</option>
+
+</select>
+
+<div class="toggle-container">
+
+<input type="checkbox" id="helicopter-toggle"> 🚁 Helicopter Mode
+
+</div>
+
+<button onclick="initGame()">START MATCH</button>
+
+</div>
+
+</div>
+
+<div id="win-screen" style="display:none;">
+
+<div class="menu-card"><h1 id="winner-text" style="color: gold;">WINNER!</h1><button onclick="location.reload()">PLAY AGAIN</button></div>
+
+</div>
+
+<canvas id="pongCanvas" width="800" height="600"></canvas>
+
+</div>
+
+
+
+<div id="footer">
+
+<div class="box"><strong>🏆 CAEDENBOARD</strong><div id="score-list"></div></div>
+
+<div class="box"><strong>🎮 CAEDENTROLS</strong><br>P1: W/S | P2: Arrows<br>Super: Space/Enter</div>
+
+</div>
+
+
+
+<script>
+
 const canvas = document.getElementById("pongCanvas");
-        const ctx = canvas.getContext("2d");
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
-        let gameActive = false, isPvP = false, shake = 0, aiStrength = 0.04;
-        let score1 = 0, score2 = 0, p1DisplayName = "P1", p2DisplayName = "CPU";
-        let p1 = { y: 250, vy: 0, h: 100, meter: 0 }, p2 = { y: 250, vy: 0, h: 100, meter: 0 };
-        let ball = { x: 400, y: 300, r: 8, dx: 5, dy: 5, history: [], color: "white", alpha: 1, scaleX: 1, scaleY: 1 };
-        let particles = [], powerups = [], bgElements = [], keys = {};
-        
-        let paddleRotation = 0;
-        let flashOpacity = 0;
+const ctx = canvas.getContext("2d");
 
-        const themes = {
-            neon: { bg: "#0a0a0a", p1: "#0ff", p2: "#f0f", ball: "#fff" },
-            matrix: { bg: "#000", p1: "#0f0", p2: "#080", ball: "#0f0" },
-            lava: { bg: "#1a0000", p1: "#f40", p2: "#800", ball: "#ff0" },
-            space: { bg: "#00001a", p1: "#fff", p2: "#888", ball: "#fff" }
-        };
-        let theme = themes.neon;
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
-        function toggleInputs() {
-            const mode = document.getElementById("mode-select").value;
-            document.getElementById("p2-name").style.display = (mode === "pvp") ? "inline-block" : "none";
-            document.getElementById("diff-select").style.display = (mode === "pvc") ? "inline-block" : "none";
-        }
 
-        // --- CONTROLS ---
-        window.addEventListener("keydown", e => keys[e.key] = true);
-        window.addEventListener("keyup", e => keys[e.key] = false);
 
-        // Mobile Touch Logic
-        canvas.addEventListener("touchstart", handleTouch, {passive: false});
-        canvas.addEventListener("touchmove", handleTouch, {passive: false});
+let gameActive = false, isPvP = false, shake = 0, aiStrength = 0.04;
 
-        function handleTouch(e) {
-            if (!gameActive) return;
-            e.preventDefault();
-            const rect = canvas.getBoundingClientRect();
-            const scaleX = canvas.width / rect.width;
-            const scaleY = canvas.height / rect.height;
+let score1 = 0, score2 = 0, p1DisplayName = "P1", p2DisplayName = "CPU";
 
-            for (let i = 0; i < e.touches.length; i++) {
-                let t = e.touches[i];
-                let tx = (t.clientX - rect.left) * scaleX;
-                let ty = (t.clientY - rect.top) * scaleY;
+let p1 = { y: 250, vy: 0, h: 100, meter: 0 }, p2 = { y: 250, vy: 0, h: 100, meter: 0 };
 
-                // Left side moves P1
-                if (tx < canvas.width / 2) {
-                    p1.y = ty - p1.h / 2;
-                    if (p1.meter >= 100 && ty < 80) useSuper(p1); // Tap top corner for super
-                } 
-                // Right side moves P2 (if PvP)
-                else if (isPvP) {
-                    p2.y = ty - p2.h / 2;
-                    if (p2.meter >= 100 && ty < 80) useSuper(p2);
-                }
-            }
-        }
+let ball = { x: 400, y: 300, r: 8, dx: 5, dy: 5, history: [], color: "white", alpha: 1, scaleX: 1, scaleY: 1 };
 
-        function playSound(f, t, d) {
-            const o = audioCtx.createOscillator(), g = audioCtx.createGain();
-            o.type = t; o.frequency.setValueAtTime(f, audioCtx.currentTime);
-            g.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + d);
-            o.connect(g); g.connect(audioCtx.destination); o.start(); o.stop(audioCtx.currentTime + d);
-        }
+let particles = [], powerups = [], bgElements = [], keys = {};
 
-        function createExplosion(x, y, color) {
-            for(let i=0; i<15; i++) particles.push({ x, y, dx: (Math.random()-0.5)*15, dy: (Math.random()-0.5)*15, life: 30, color });
-        }
 
-        function initGame() {
-            p1DisplayName = document.getElementById("p1-name").value || "Player 1";
-            isPvP = document.getElementById("mode-select").value === "pvp";
-            p2DisplayName = isPvP ? (document.getElementById("p2-name").value || "Player 2") : "CPU";
-            aiStrength = parseFloat(document.getElementById("diff-select").value);
-            theme = themes[document.getElementById("theme-select").value];
-            document.getElementById("start-screen").style.display = "none";
-            for(let i=0; i<25; i++) bgElements.push({x: Math.random()*800, y: Math.random()*600, s: Math.random()*2});
-            gameActive = true;
-            
-            setInterval(() => { 
-                if(gameActive) {
-                    const types = ['⚡', '📏', '👻'];
-                    powerups.push({
-                        x: 200+Math.random()*400, 
-                        y: 100+Math.random()*400, 
-                        type: types[Math.floor(Math.random()*types.length)], 
-                        life: 400
-                    });
-                }
-            }, 6000);
-            
-            loop();
-        }
+let paddleRotation = 0;
 
-        function useSuper(player) {
-            player.meter = 0; 
-            ball.dx *= 2.2; 
-            shake = 25; 
-            flashOpacity = 0.5;
-            playSound(600, 'square', 0.2);
-            createExplosion(ball.x, ball.y, "gold");
-        }
+let flashOpacity = 0;
 
-        function move() {
-            if (!gameActive) return;
 
-            // P1 Keyboard
-            if (keys['w']) p1.vy -= 1.6; else if (keys['s']) p1.vy += 1.6; else p1.vy *= 0.8;
-            p1.y = Math.max(0, Math.min(600 - p1.h, p1.y + p1.vy));
-            if (keys[' '] && p1.meter >= 100) useSuper(p1);
 
-            // P2 Control
-            if (isPvP) {
-                if (keys['ArrowUp']) p2.vy -= 1.6; else if (keys['ArrowDown']) p2.vy += 1.6; else p2.vy *= 0.8;
-                if (keys['Enter'] && p2.meter >= 100) useSuper(p2);
-            } else { 
-                let aiTarget = ball.y - (p2.h / 2);
-                p2.y += (aiTarget - p2.y) * aiStrength; 
-            }
-            p2.y = Math.max(0, Math.min(600 - p2.h, p2.y + p2.vy));
+const themes = {
 
-            ball.x += ball.dx; ball.y += ball.dy;
-            ball.history.push({x: ball.x, y: ball.y}); if(ball.history.length > 8) ball.history.shift();
+neon: { bg: "#0a0a0a", p1: "#0ff", p2: "#f0f", ball: "#fff" },
 
-            ball.scaleX += (1 - ball.scaleX) * 0.2;
-            ball.scaleY += (1 - ball.scaleY) * 0.2;
+matrix: { bg: "#000", p1: "#0f0", p2: "#080", ball: "#0f0" },
 
-            if (ball.y < 0 || ball.y > 600) { 
-                ball.dy *= -1; 
-                shake = 3;
-                ball.scaleY = 0.5; ball.scaleX = 1.5;
-                playSound(150, 'sine', 0.1); 
-            }
+lava: { bg: "#1a0000", p1: "#f40", p2: "#800", ball: "#ff0" },
 
-            const isHelicopter = document.getElementById("helicopter-toggle").checked;
+space: { bg: "#00001a", p1: "#fff", p2: "#888", ball: "#fff" }
 
-            if (ball.x < 35 && ball.y > p1.y && ball.y < p1.y + p1.h) {
-                ball.dy = ((p1.y + p1.h/2) - ball.y) / (p1.h/2) * -7; 
-                if (isHelicopter) ball.dy += Math.sin(paddleRotation) * 10;
-                ball.dx = Math.abs(ball.dx) + 0.3;
-                p1.meter = Math.min(100, p1.meter + 15); 
-                shake = 8; ball.scaleX = 0.5; ball.scaleY = 1.5; 
-                createExplosion(ball.x, ball.y, theme.p1); 
-                playSound(300, 'triangle', 0.1);
-            }
+};
 
-            if (ball.x > 765 && ball.y > p2.y && ball.y < p2.y + p2.h) {
-                ball.dy = ((p2.y + p2.h/2) - ball.y) / (p2.h/2) * -7; 
-                if (isHelicopter) ball.dy += Math.sin(paddleRotation) * 10;
-                ball.dx = -Math.abs(ball.dx) - 0.3;
-                p2.meter = Math.min(100, p2.meter + 15); 
-                shake = 8; ball.scaleX = 0.5; ball.scaleY = 1.5;
-                createExplosion(ball.x, ball.y, theme.p2); 
-                playSound(300, 'triangle', 0.1);
-            }
+let theme = themes.neon;
 
-            powerups.forEach((p, i) => {
-                if (Math.hypot(ball.x - p.x, ball.y - p.y) < 30) { 
-                    if(p.type === '⚡') ball.dx *= 1.4;
-                    if(p.type === '📏') { p1.h = 160; p2.h = 160; setTimeout(() => {p1.h=100; p2.h=100}, 5000); }
-                    if(p.type === '👻') { ball.alpha = 0.3; setTimeout(() => ball.alpha = 1, 3000); }
-                    powerups.splice(i, 1); 
-                    playSound(800, 'sine', 0.2); 
-                }
-                p.life--; if(p.life <= 0) powerups.splice(i,1);
-            });
 
-            if (ball.x < 0 || ball.x > 800) {
-                ball.x > 400 ? score1++ : score2++;
-                shake = 20;
-                if (score1 >= 10 || score2 >= 10) endGame(); else resetBall();
-            }
-            particles.forEach((p, i) => { p.x += p.dx; p.y += p.dy; p.life--; if(p.life <= 0) particles.splice(i,1); });
-            updateUI();
-        }
 
-        function resetBall() {
-            ball.x = 400; ball.y = 300; 
-            ball.dx = 5 * (Math.random() > 0.5 ? 1 : -1); 
-            ball.dy = (Math.random()-0.5)*8;
-            ball.alpha = 1; ball.scaleX = 1; ball.scaleY = 1;
-            ball.history = []; 
-            playSound(100, 'sawtooth', 0.3);
-        }
+function toggleInputs() {
 
-        function updateUI() {
-            document.getElementById("p1-label").textContent = p1DisplayName + ": " + score1;
-            document.getElementById("p2-label").textContent = p2DisplayName + ": " + score2;
-            document.getElementById("p1-meter").style.width = p1.meter + "%";
-            document.getElementById("p2-meter").style.width = p2.meter + "%";
-        }
+const mode = document.getElementById("mode-select").value;
 
-        function endGame() {
-            gameActive = false; document.getElementById("win-screen").style.display = "flex";
-            const winner = score1 >= 10 ? p1DisplayName : p2DisplayName;
-            document.getElementById("winner-text").textContent = winner + " WINS!";
-            let history = JSON.parse(localStorage.getItem("pongScores") || "[]");
-            history.push({ name: winner, score: Math.max(score1, score2) });
-            localStorage.setItem("pongScores", JSON.stringify(history.sort((a,b)=>b.score-a.score).slice(0,5)));
-            showLeaderboard();
-        }
+document.getElementById("p2-name").style.display = (mode === "pvp") ? "inline-block" : "none";
 
-        function showLeaderboard() {
-            const history = JSON.parse(localStorage.getItem("pongScores") || "[]");
-            document.getElementById("score-list").innerHTML = history.map(s => `<div>${s.name}: ${s.score}</div>`).join("");
-        }
+document.getElementById("diff-select").style.display = (mode === "pvc") ? "inline-block" : "none";
 
-        function draw() {
-            ctx.save();
-            if (shake > 0) { ctx.translate((Math.random()-0.5)*shake, (Math.random()-0.5)*shake); shake *= 0.9; }
-            ctx.fillStyle = theme.bg; ctx.fillRect(0, 0, 800, 600);
-            bgElements.forEach(b => { ctx.fillStyle = "rgba(255,255,255,0.15)"; ctx.fillRect(b.x, b.y, b.s, b.s); b.y = (b.y + 0.4) % 600; });
-            
-            ball.history.forEach((p, i) => { 
-                ctx.globalAlpha = (i / 10) * ball.alpha; 
-                ctx.fillStyle = theme.ball; ctx.beginPath(); ctx.arc(p.x, p.y, ball.r - (8-i), 0, Math.PI*2); ctx.fill(); 
-            });
+}
 
-            ctx.globalAlpha = 1; 
-            const isHelicopter = document.getElementById("helicopter-toggle").checked;
-            if (isHelicopter) paddleRotation += 0.15;
 
-            // P1
-            ctx.save();
-            ctx.translate(20 + 7.5, p1.y + p1.h / 2);
-            if (isHelicopter) ctx.rotate(paddleRotation);
-            ctx.fillStyle = theme.p1;
-            ctx.fillRect(-7.5, -p1.h / 2, 15, p1.h);
-            ctx.restore();
 
-            // P2
-            ctx.save();
-            ctx.translate(765 + 7.5, p2.y + p2.h / 2);
-            if (isHelicopter) ctx.rotate(paddleRotation);
-            ctx.fillStyle = theme.p2;
-            ctx.fillRect(-7.5, -p2.h / 2, 15, p2.h);
-            ctx.restore();
-            
-            // Draw Ball
-            ctx.save();
-            ctx.translate(ball.x, ball.y);
-            ctx.scale(ball.scaleX, ball.scaleY);
-            ctx.globalAlpha = balllpha;
-            ctx.fillStyle = theme.ball; ctx.beginPath(); ctx.arc(0, 0, ball.r, 0, Math.PI*2); ctx.fill();
-            ctx.restore();
-            
-            powerups.forEach(p => { ctx.font = "24px Arial"; ctx.fillText(p.type, p.x, p.y); });
-            particles.forEach(p => { ctx.fillStyle = p.color; ctx.globalAlpha = p.life/30; ctx.fillRect(p.x, p.y, 3, 3); });
-            
-            if (flashOpacity > 0) {
-                ctx.fillStyle = `rgba(255, 255, 255, ${flashOpacity})`;
-                ctx.fillRect(0, 0, 800, 600);
-                flashOpacity -= 0.05;
-            }
-            ctx.restore();
-        }
+window.addEventListener("keydown", e => keys[e.key] = true);
 
-        function loop() { if(gameActive) { move(); draw(); requestAnimationFrame(loop); } }
-        showLeaderboard();
+window.addEventListener("keyup", e => keys[e.key] = false);
+
+
+
+function playSound(f, t, d) {
+
+const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+
+o.type = t; o.frequency.setValueAtTime(f, audioCtx.currentTime);
+
+g.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + d);
+
+o.connect(g); g.connect(audioCtx.destination); o.start(); o.stop(audioCtx.currentTime + d);
+
+}
+
+
+
+function createExplosion(x, y, color) {
+
+for(let i=0; i<15; i++) particles.push({ x, y, dx: (Math.random()-0.5)*15, dy: (Math.random()-0.5)*15, life: 30, color });
+
+}
+
+
+
+function initGame() {
+
+p1DisplayName = document.getElementById("p1-name").value || "Player 1";
+
+isPvP = document.getElementById("mode-select").value === "pvp";
+
+p2DisplayName = isPvP ? (document.getElementById("p2-name").value || "Player 2") : "CPU";
+
+aiStrength = parseFloat(document.getElementById("diff-select").value);
+
+theme = themes[document.getElementById("theme-select").value];
+
+document.getElementById("start-screen").style.display = "none";
+
+for(let i=0; i<25; i++) bgElements.push({x: Math.random()*800, y: Math.random()*600, s: Math.random()*2});
+
+gameActive = true;
+
+
+setInterval(() => {
+
+if(gameActive) {
+
+const types = ['⚡', '📏', '👻'];
+
+powerups.push({
+
+x: 200+Math.random()*400,
+
+y: 100+Math.random()*400,
+
+type: types[Math.floor(Math.random()*types.length)],
+
+life: 400
+
+});
+
+}
+
+}, 6000);
+
+
+loop();
+
+}
+
+
+
+function useSuper(player) {
+
+player.meter = 0;
+
+ball.dx *= 2.2;
+
+shake = 25;
+
+flashOpacity = 0.5; // Trigger Flash
+
+playSound(600, 'square', 0.2);
+
+createExplosion(ball.x, ball.y, "gold");
+
+}
+
+
+
+function move() {
+
+if (!gameActive) return;
+
+
+
+if (keys['w']) p1.vy -= 1.6; else if (keys['s']) p1.vy += 1.6; else p1.vy *= 0.8;
+
+p1.y = Math.max(0, Math.min(600 - p1.h, p1.y + p1.vy));
+
+if (keys[' '] && p1.meter >= 100) useSuper(p1);
+
+
+
+if (isPvP) {
+
+if (keys['ArrowUp']) p2.vy -= 1.6; else if (keys['ArrowDown']) p2.vy += 1.6; else p2.vy *= 0.8;
+
+if (keys['Enter'] && p2.meter >= 100) useSuper(p2);
+
+} else {
+
+let aiTarget = ball.y - (p2.h / 2);
+
+p2.y += (aiTarget - p2.y) * aiStrength;
+
+}
+
+p2.y = Math.max(0, Math.min(600 - p2.h, p2.y + p2.vy));
+
+
+
+ball.x += ball.dx; ball.y += ball.dy;
+
+ball.history.push({x: ball.x, y: ball.y}); if(ball.history.length > 8) ball.history.shift();
+
+
+
+// Pinch Recovery
+
+ball.scaleX += (1 - ball.scaleX) * 0.2;
+
+ball.scaleY += (1 - ball.scaleY) * 0.2;
+
+
+
+if (ball.y < 0 || ball.y > 600) {
+
+ball.dy *= -1;
+
+shake = 3;
+
+ball.scaleY = 0.5; ball.scaleX = 1.5; // Pinch
+
+playSound(150, 'sine', 0.1);
+
+}
+
+
+
+const isHelicopter = document.getElementById("helicopter-toggle").checked;
+
+
+
+// P1 Collision
+
+if (ball.x < 35 && ball.y > p1.y && ball.y < p1.y + p1.h) {
+
+let relativeIntersectY = (p1.y + (p1.h / 2)) - ball.y;
+
+let normalizedIntersectY = relativeIntersectY / (p1.h / 2);
+
+ball.dy = -normalizedIntersectY * 7;
+
+if (isHelicopter) ball.dy += Math.sin(paddleRotation) * 10; // Heli Physics
+
+ball.dx = Math.abs(ball.dx) + 0.3;
+
+p1.meter = Math.min(100, p1.meter + 15);
+
+shake = 8; ball.scaleX = 0.5; ball.scaleY = 1.5;
+
+createExplosion(ball.x, ball.y, theme.p1);
+
+playSound(300, 'triangle', 0.1);
+
+}
+
+
+
+// P2 Collision
+
+if (ball.x > 765 && ball.y > p2.y && ball.y < p2.y + p2.h) {
+
+let relativeIntersectY = (p2.y + (p2.h / 2)) - ball.y;
+
+let normalizedIntersectY = relativeIntersectY / (p2.h / 2);
+
+ball.dy = -normalizedIntersectY * 7;
+
+if (isHelicopter) ball.dy += Math.sin(paddleRotation) * 10; // Heli Physics
+
+ball.dx = -Math.abs(ball.dx) - 0.3;
+
+p2.meter = Math.min(100, p2.meter + 15);
+
+shake = 8; ball.scaleX = 0.5; ball.scaleY = 1.5;
+
+createExplosion(ball.x, ball.y, theme.p2);
+
+playSound(300, 'triangle', 0.1);
+
+}
+
+
+
+powerups.forEach((p, i) => {
+
+if (Math.hypot(ball.x - p.x, ball.y - p.y) < 30) {
+
+if(p.type === '⚡') ball.dx *= 1.4;
+
+if(p.type === '📏') { p1.h = 160; p2.h = 160; setTimeout(() => {p1.h=100; p2.h=100}, 5000); }
+
+if(p.type === '👻') { ball.alpha = 0.3; setTimeout(() => ball.alpha = 1, 3000); }
+
+powerups.splice(i, 1);
+
+playSound(800, 'sine', 0.2);
+
+}
+
+p.life--; if(p.life <= 0) powerups.splice(i,1);
+
+});
+
+
+
+if (ball.x < 0 || ball.x > 800) {
+
+ball.x > 400 ? score1++ : score2++;
+
+shake = 20;
+
+if (score1 >= 10 || score2 >= 10) endGame(); else resetBall();
+
+}
+
+particles.forEach((p, i) => { p.x += p.dx; p.y += p.dy; p.life--; if(p.life <= 0) particles.splice(i,1); });
+
+updateUI();
+
+}
+
+
+
+function resetBall() {
+
+ball.x = 400; ball.y = 300;
+
+ball.dx = 5 * (Math.random() > 0.5 ? 1 : -1);
